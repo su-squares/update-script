@@ -1,0 +1,6 @@
+# npm
+node_modules/
+
+# application
+build/
+query-blockchain.config.json
