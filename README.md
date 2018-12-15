@@ -47,4 +47,18 @@ time node query-blockchain.js
 time zsh build-square.sh
 ```
 
+Deploy generall looks like this.
+
+```sh
+cp build/wholeSquare.png ~/Sites/tenthousandsu.com/build/wholeSquare.png
+cp build/squarePersonalizations.json ~/Sites/tenthousandsu.com/build/squarePersonalizations.json
+cp build/metadata/*.json ~/Sites/tenthousandsu.com/erc721
+cd ~/Sites/tenthousandsu.com
+git status # Manually do a sanity check
+git diff # Manually do a sanity check
+git add . 
+git commit -m 'Load from blockchain'
+git push
+```
+
 You can set this up as a cron job. But in production we are running this manually based on [email alerts from EtherScan](https://etherscan.io/myaddress) and specific customer requests.
