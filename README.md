@@ -47,7 +47,7 @@ time node query-blockchain.js
 time zsh build-square.sh
 ```
 
-Deploy generall looks like this.
+Deploy generally looks like this.
 
 ```sh
 cp build/wholeSquare.png ~/Sites/tenthousandsu.com/build/wholeSquare.png
