@@ -22,7 +22,7 @@
 const fs = require('fs');
 const config = require('./query-blockchain.config.json');
 const Web3 = require('web3'); // Use web3@1.0.0-beta.36+ https://github.com/ethereum/web3.js/issues/1916
-const web3 = new Web3(new Web3.providers.HttpProvider('https://mainnet.infura.io/' + config.infuraKey));
+const web3 = new Web3(new Web3.providers.HttpProvider('https://mainnet.infura.io/v3/' + config.infuraProjectId));
 
 const abi=[{"anonymous":false,"inputs":[{"indexed":false,"name":"_nftId","type":"uint256"}],"name":"Personalized","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_from","type":"address"},{"indexed":true,"name":"_to","type":"address"},{"indexed":true,"name":"_tokenId","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"suSquares","outputs":[{"name":"version","type":"uint256"},{"name":"rgbData","type":"bytes"},{"name":"title","type":"string"},{"name":"href","type":"string"}],"payable":false,"stateMutability":"view","type":"function"}];
 const contract = new web3.eth.Contract(abi, config.account);
