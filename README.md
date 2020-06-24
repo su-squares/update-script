@@ -33,6 +33,9 @@ EOL
 Here is the complete run script.
 
 ```sh
+# One-time install
+npm install
+
 # Prepare build
 set -e
 rm -rf build
