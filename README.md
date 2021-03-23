@@ -11,7 +11,7 @@ brew install node
 brew install imagemagick
 ```
 
-Also you will need a connection to the Ethereum network. This script uses **Infura** to connect, so you will need an Infura API key.
+Also you will need a connection to the Ethereum network. You can get an HTTP provider at https://infura.io/dashboard/ethereum/.
 
 ## Configure it
 
@@ -23,7 +23,7 @@ cat << EOL > query-blockchain.config.json
 {
     "account": "0xE9e3F9cfc1A64DFca53614a0182CFAD56c10624F",
     "startBlock": 6645906,
-    "infuraKey": "YOUR INFURA API KEY HERE"
+    "provider": "YOUR INFURA API URL HERE"
 }
 EOL
 ```
@@ -65,3 +65,4 @@ git push
 ```
 
 You can set this up as a cron job. But in production we are running this manually based on [email alerts from EtherScan](https://etherscan.io/myaddress) and specific customer requests.
+
