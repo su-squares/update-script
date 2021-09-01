@@ -1,14 +1,17 @@
 # Su Squares Update Script
+
 This script pull data from the [Su Squares smart contract](https://github.com/su-squares/ethereum-contract) and builds [wholeSquare.png](https://tenthousandsu.com/build/wholeSquare.png), [squarePersonalizations.json](https://tenthousandsu.com/build/squarePersonalizations.json) and erc721/*.json which are all deployed on https://tenthousandsu.com. 
 
 ## Install it
 
-You will need **Node.js** and **ImageMagick** for this project. Here are installation instructions for macOS (tested on 10.12+).
+You will need **Node.js** for this project. Here are installation instructions for macOS (tested on 10.12+).
 
 ```sh
 # Change into the su-squares-update-script directory
 brew install node
-brew install imagemagick
+
+# One-time install
+npm install
 ```
 
 Also you will need a connection to the Ethereum network. You can get an HTTP provider at https://infura.io/dashboard/ethereum/.
@@ -33,21 +36,10 @@ EOL
 Here is the complete run script.
 
 ```sh
-# One-time install
-npm install
-
-# Prepare build
-set -e
-rm -rf build
-mkdir build
-mkdir build/metadata
-mkdir build/squares-rgb
+cd ~/Developer/su-squares/update-script
 
 # Get blockchain data
 time node query-blockchain.js
-
-# Build the image
-time zsh build-square.sh
 ```
 
 Deploy generally looks like this.
@@ -57,10 +49,8 @@ cp build/wholeSquare.png ~/Sites/tenthousandsu.com/build/wholeSquare.png
 cp build/squarePersonalizations.json ~/Sites/tenthousandsu.com/build/squarePersonalizations.json
 cp build/metadata/*.json ~/Sites/tenthousandsu.com/erc721
 cd ~/Sites/tenthousandsu.com
-git status # Manually do a sanity check
-git diff # Manually do a sanity check
-git add . 
-git commit -m 'Load from blockchain'
+git status # Manually do a sanity check git diff # Manually do a sanity check
+git commit -am 'Load from blockchain'
 git push
 ```
 
