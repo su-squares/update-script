@@ -25,6 +25,7 @@ fs.mkdirSync("./build/squares-rgb", { recursive: true });
 var startBlock = config.startBlock;
 var squarePersonalizations = Array(NUM_SQUARES).fill(null);
 
+// Read checkpoint /////////////////////////////////////////////////////////////
 if (progress) {
     console.log(chalk.blue("Resuming from:        ") + progress.processedBlock);
     startBlock = progress.processedBlock;
@@ -62,7 +63,7 @@ if (progress) {
         });
     });
 
-    // Handle Squares which were personalized...
+    // Handle Squares which were personalized (which never preceds mint)...
     const filterPersonalized = suSquaresContract.filters.Personalized();
     const personalizationEvents = await suSquaresContract.queryFilter(filterPersonalized, startBlock, endBlock)
     for(var i=0; i<personalizationEvents.length; i++) {

@@ -18,28 +18,24 @@ Also you will need a connection to the Ethereum network. You can get an HTTP pro
 
 ## Configure it
 
-Configure the blockchain script by writing to **query-blockchain.config.json** like so. 
+Configure the blockchain script by writing a file **query-blockchain.config.json** like so: 
 
-```sh
-#!/bin/sh
-cat << EOL > query-blockchain.config.json
+```json
 {
     "account": "0xE9e3F9cfc1A64DFca53614a0182CFAD56c10624F",
     "startBlock": 6645906,
     "provider": "YOUR INFURA API URL HERE"
 }
-EOL
 ```
 
 ## Run it
 
-Here is the complete run script.
+Here is the complete run script to build the main image.
 
 ```sh
 cd ~/Developer/su-squares/update-script
-
-# Get blockchain data
-time node query-blockchain.js
+time node load-blockchain.js 100000 # load however many blocks you want, repeat
+time zsh build-square.sh
 ```
 
 Deploy generally looks like this.
@@ -56,3 +52,6 @@ git push
 
 You can set this up as a cron job. But in production we are running this manually based on [email alerts from EtherScan](https://etherscan.io/myaddress) and specific customer requests.
 
+## License
+
+This project is released under the MIT license. See [LICENSE](./LICENSE).

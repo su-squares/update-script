@@ -15,7 +15,8 @@
 
 emptyBoard="assets/empty-board.png"
 notPersonalizedSquare="assets/one-gray-square.png"
-canvas="build/wholeSquare.tmp.rgb"
+# canvas="RGB:build/wholeSquare.tmp.rgb"
+canvas="MPC:build/wholeSquare.tmp.mpc"
 output="build/wholeSquare.png"
 
 convert $emptyBoard $canvas
