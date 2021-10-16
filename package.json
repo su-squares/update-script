@@ -3,5 +3,12 @@
     "chalk": "^4.1.2",
     "ethers": "^5.4.6",
     "sharp": "^0.29.0"
-  }
+  },
+  "engines": {
+    "node": ">=12.13.0"
+  },
+  "//": [
+    "These are comments, https://stackoverflow.com/a/14221781/300224",
+    "Sharp requires Node.js >= 12.13.0, https://sharp.pixelplumbing.com/install"
+  ]
 }

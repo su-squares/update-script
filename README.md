@@ -22,8 +22,6 @@ Configure the blockchain script by writing a file **config.json** like so:
 
 ```json
 {
-    "account": "0xE9e3F9cfc1A64DFca53614a0182CFAD56c10624F",
-    "startBlock": 6645906,
     "provider": "https://mainnet.infura.io/v3/YOUR INFURA API URL HERE"
 }
 ```
