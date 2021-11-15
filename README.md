@@ -51,6 +51,15 @@ git push
 
 You can set this up as a cron job. But in production we are running this manually based on [email alerts from Etherscan](https://etherscan.io/myaddress) and specific customer requests.
 
+Were there any recent updates?
+
+```
+cd ~/Developer/su-squares/update-script
+node have-there-been-updates.js
+```
+
+
+
 ## License
 
 This project is released under the MIT license, enjoy! See [LICENSE](./LICENSE).

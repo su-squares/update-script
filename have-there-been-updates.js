@@ -2,21 +2,21 @@
  * Su Squares Updates
  * (c) 2021 Su & William Entriken, released under MIT license
  * 
- * Checks if any updates have occured on-chain
+ * Checks if any updates have occured on-chain since state recorded in resume file
  * 
  * SYNOPSIS
- * node have-there-been-updates.js [SINCE_BLOCK]
+ * node have-there-been-updates.js
  * 
  * EXIT STATUS
- * 0 (success) if no new updates since SINCE_BLOCK
- * 1 (success) if new updates since SINCE_BLOCK
+ * 0 (success) if no new updates since resume file updated
+ * 1 (success) if new updates since resume file updated
  */
 
 const config = require("./config.json");
 const { ethers } = require("ethers");
 const provider = new ethers.providers.JsonRpcProvider(config.provider);
 const sinceBlock = process.argv.slice(2)[0]; // first argument
-
+const state = require("./build/resume.json");
 
 // Contracts ///////////////////////////////////////////////////////////////////
 const suSquares = {
@@ -42,13 +42,13 @@ underlay.contract = new ethers.Contract(underlay.address, underlay.abi, provider
 
 // Filters /////////////////////////////////////////////////////////////////////
 const filterSold = suSquares.contract.filters.Transfer(suSquares.address, null, null);
-const sold = suSquares.contract.queryFilter(filterSold, parseInt(sinceBlock ?? suSquares.startBlock));
+const sold = suSquares.contract.queryFilter(filterSold, state.startBlock);
 
 const filterPersonalized = suSquares.contract.filters.Personalized();
-const personalized = suSquares.contract.queryFilter(filterPersonalized, parseInt(sinceBlock ?? suSquares.startBlock));
+const personalized = suSquares.contract.queryFilter(filterPersonalized, state.startBlock);
 
 const filterUnderlay = underlay.contract.filters.PersonalizedUnderlay();
-const personalizedUnderlay = underlay.contract.queryFilter(filterUnderlay, parseInt(sinceBlock ?? underlay.startBlock));
+const personalizedUnderlay = underlay.contract.queryFilter(filterUnderlay, state.startBlock);
 
 
 // Main program ////////////////////////////////////////////////////////////////
