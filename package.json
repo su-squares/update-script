@@ -5,7 +5,7 @@
     "sharp": "^0.29.0"
   },
   "engines": {
-    "node": ">=12.13.0"
+    "node": ">=14.0.0"
   },
   "//": [
     "These are comments, https://stackoverflow.com/a/14221781/300224",
