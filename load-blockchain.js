@@ -78,7 +78,7 @@ function writeMetadata(squareNumber, paddedSquareNumber){
     console.log(chalk.blue("Current block:        ") + currentBlock);
 
     // Handle Squares which were transferred from the contract (sold)...
-    const filterSold = suSquaresContract.filters.Transfer(config.account, null, null);
+    const filterSold = suSquaresContract.filters.Transfer(suSquaresAddress, null, null);
     await suSquaresContract.queryFilter(filterSold, state.startBlock, endBlock).then(events => {
         events.forEach(event => {
             const squareNumber = event.args.squareNumber;
