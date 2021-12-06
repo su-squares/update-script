@@ -123,7 +123,7 @@ for (const event of personalizedUnderlay) {
             state.squarePersonalizations[squareNumber - 1][0],
             event.args.title,
             event.args.href,
-            event.args.blockNumber,
+            event.blockNumber,
             Buffer.from(event.args.rgbData.substr(2), "hex")
         );
     }
@@ -144,7 +144,7 @@ for await (const event of personalized) {
             personalization.version.toNumber(),
             state.underlayPersonalizations[squareNumber - 1].title,
             state.underlayPersonalizations[squareNumber - 1].href,
-            event.args.blockNumber,
+            event.blockNumber,
             Buffer.from(state.underlayPersonalizations[squareNumber - 1].rgbData, "hex")
         );
     } else {
@@ -153,7 +153,7 @@ for await (const event of personalized) {
             personalization.version.toNumber(),
             personalization.title,
             personalization.href,
-            event.args.blockNumber,
+            event.blockNumber,
             Buffer.from(personalization.rgbData.substr(2), "hex")
         );
     }
