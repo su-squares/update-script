@@ -12,11 +12,11 @@
  * 1 (success) if new updates since resume file updated
  */
 
-const config = require("./config.json");
-const { ethers } = require("ethers");
+import fs from "fs";
+import { ethers } from "ethers";
+const config = JSON.parse(fs.readFileSync("./config.json"));
+const state = JSON.parse(fs.readFileSync("./build/resume.json"));
 const provider = new ethers.providers.JsonRpcProvider(config.provider);
-const sinceBlock = process.argv.slice(2)[0]; // first argument
-const state = require("./build/resume.json");
 
 // Contracts ///////////////////////////////////////////////////////////////////
 const suSquares = {
@@ -52,8 +52,9 @@ const personalizedUnderlay = underlay.contract.queryFilter(filterUnderlay, state
 
 
 // Main program ////////////////////////////////////////////////////////////////
-Promise.all([sold, personalized, personalizedUnderlay]).then((values) => {
-    [soldEvents, personalizedEvents, personalizedUnderlayEvents] = values;
+await Promise.all([sold, personalized, personalizedUnderlay]).then((values) => {
+    const [soldEvents, personalizedEvents, personalizedUnderlayEvents] = values;
+    console.log("Scanning since block", state.startBlock);
     console.log(
         "Count of events",
         soldEvents.length,
