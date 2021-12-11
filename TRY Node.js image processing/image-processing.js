@@ -37,14 +37,11 @@ function overlaySquarePersonalization(squareNumber, rgbData) {
 }
 
 function saveImage(outputFilename) {
+  // Load file bytes because we are reading & writing the same file
+  // see https://github.com/lovell/sharp/issues/2873
   const inputBuffer = fs.readFileSync(basefilename);
-
-  if (composites.length > 0) { // https://github.com/lovell/sharp/issues/2872
-    return sharp(inputBuffer)
-      .composite(composites)
-      .toFile(outputFilename);
-  }
   return sharp(inputBuffer)
+    .composite(composites)
     .toFile(outputFilename);
 }
 
