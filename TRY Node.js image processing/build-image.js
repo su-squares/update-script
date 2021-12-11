@@ -6,7 +6,7 @@ const imageProcessing = require("./image-processing");
 
 imageProcessing.loadMillionPixelBase("./assets/empty-board.png");
 
-for(var squareNumber = 1; squareNumber <= 10000; squareNumber++) {
+for (var squareNumber = 1; squareNumber <= 10000; squareNumber++) {
     const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
 
     // Skip if no metadata
