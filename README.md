@@ -4,11 +4,13 @@ This script pulls data from the [Su Squares smart contract](https://github.com/s
 
 ## Install it
 
-You will need **Node.js** for this project. Here are installation instructions for macOS (tested on 10.12+).
+You will need **Node.js 14+** for this project. Here are installation instructions for macOS (tested on 10.12+).
 
 ```sh
 # Change into the su-squares-update-script directory
 brew install node
+brew install nvm
+nvm use 14
 
 # One-time install
 npm install
@@ -32,8 +34,9 @@ Here is the complete run script to build the main image.
 
 ```sh
 cd ~/Developer/su-squares/update-script
+nvm use 14
 # Load however many blocks you want, repeat
-time node load-blockchain.js 100000 
+time node load-blockchain.mjs 100000 
 time zsh build-square.sh && rm -rf build/squares-rgb
 ```
 
