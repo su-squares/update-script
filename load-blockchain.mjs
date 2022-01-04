@@ -76,7 +76,7 @@ function personalize(squareNumber, version, title, href, blockNumber, pixelBuffe
         JSON.stringify({
             "name": "Square #" + paddedSquareNumber,
             "description": title,
-            "image": "https://tenthousandsu.com/erc721/" + paddedSquareNumber + ".png"
+            "image": "https://tenthousandsu.com/erc721/" + paddedSquareNumber + ".svg"
         })
     );
     fs.writeFileSync("./build/squares-rgb/" + paddedSquareNumber + ".rgb", pixelBuffer);
