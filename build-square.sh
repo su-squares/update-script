@@ -31,7 +31,7 @@ do
   cmp -s assets/nonpersonalized.rgb $square && (
     echo "WAS NOT personalized" $square
   ) || (
-    pixelSVG=$(convert -size 10x10 -depth 8 $square txt:- | tail -n +2 | perl -pe 's|(\d),(\d):.*(#......).*|<rect x="$1" y="$2" width="1" height="1" fill="$3" />|' | tr -d '\n')
+    pixelSVG=$(convert -size 10x10 -depth 8 RGB:$square txt:- | tail -n +2 | perl -pe 's|(\d),(\d):.*(#......).*|<rect x="$1" y="$2" width="1" height="1" fill="$3" />|' | tr -d '\n')
     cat assets/template.svg | sed -e "s|SQUARE|$number|" -e "s|PIXELS|$pixelSVG|" > build/metadata/$number.svg
     echo "WAS personalized: " $square
   )
