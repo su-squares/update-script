@@ -163,3 +163,4 @@ for await (const event of personalized) {
 state.startBlock = endBlock;
 fs.writeFileSync("build/squarePersonalizations.json", JSON.stringify(state.squarePersonalizations));
 fs.writeFileSync("build/resume.json", JSON.stringify(state));
+fs.writeFileSync("build/loadedTo.json", JSON.stringify(state.startBlock));

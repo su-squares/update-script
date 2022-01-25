@@ -43,8 +43,7 @@ time zsh build-square.sh && rm -rf build/squares-rgb
 Deploy generally looks like this.
 
 ```sh
-cp build/wholeSquare.png ~/Sites/tenthousandsu.com/build/wholeSquare.png
-cp build/squarePersonalizations.json ~/Sites/tenthousandsu.com/build/squarePersonalizations.json
+cp build/wholeSquare.png build/squarePersonalizations.json  build/loadedTo.json ~/Sites/tenthousandsu.com/build
 cp build/metadata/*.json build/metadata/*.svg ~/Sites/tenthousandsu.com/erc721
 cd ~/Sites/tenthousandsu.com
 git status # Manually do a sanity check git diff # Manually do a sanity check
