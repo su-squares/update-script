@@ -10,6 +10,7 @@ You will need **Node.js 14+** for this project. Here are installation instructio
 # Change into the su-squares-update-script directory
 brew install node
 brew install nvm
+brew install imagemagick
 nvm use 14
 
 # One-time install
@@ -60,8 +61,7 @@ cd ~/Developer/su-squares/update-script
 node have-there-been-updates.js
 ```
 
-
-## The non-personalized Squares
+## The non-personalized Squares (SVG)
 
 Create them one time. Save this file to `tmp`:
 
@@ -86,6 +86,22 @@ Then run:
 for square in {00001..10000}; do cat ~/Desktop/tmp | sed -e "s/xxxx/$square/" > $square.svg; done
 ```
 
+## The non-personalized Squares (PNG)
+
+Because the world is not ready for SVG yet :-(
+
+1. Remove the XXXX from the SVG above
+2. Convert SVG to 1000-px-tall base.png somehow.
+
+TODO: THIS FONT IS NOT BOLD ENOUGH TO MATCH ABOVE SVG WHICH LOOKS GREAT
+
+```
+#!/bin/zsh
+
+for square in {00001..10000}
+  do convert base.png -gravity North -font 'Helvetica-Neue-Bold' -weight Bold -fill '#ffd700' -pointsize 200 -annotate +0+370 $square > $square.png
+done
+```
 
 ## License
 

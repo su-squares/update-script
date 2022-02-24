@@ -34,6 +34,8 @@ do
     pixelSVG=$(convert -size 10x10 -depth 8 RGB:$square txt:- | tail -n +2 | perl -pe 's|(\d),(\d):.*(#......).*|<rect x="$1" y="$2" width="1" height="1" fill="$3" />|' | tr -d '\n')
     cat assets/template.svg | sed -e "s|SQUARE|$number|" -e "s|PIXELS|$pixelSVG|" > build/metadata/$number.svg
     echo "WAS personalized: " $square
+
+    # TODO ALSO MAKE PNG
   )
 done
 convert -size 1000x1000 -depth 8 MPC:$canvas PNG32:$output
