@@ -10,13 +10,16 @@
  *   An accounting of the 10,000 Square personalizations
  * - build/metadata/#####.json (OUTPUT)
  *   ERC-721 metadata file for each modified Square
- * - build/squares-rgb (OUTPUT)
- *   24-bit red-green-blue image data to add to the whole square
+ * - build/metadata/#####.svg (OUTPUT)
+ *   ERC-721 metadata image for each modified Square
+ * - build/metadata/#####.png (OUTPUT)
+ *   ERC-721 metadata image  for each modified Square
  */
 
 import fs from "fs";
 import { ethers } from "ethers";
 import chalk from "chalk";
+import { paintSuSquare, saveWholeSuSquare } from "./image-processing.mjs";
 const config = JSON.parse(fs.readFileSync("./config.json"));
 const NUM_SQUARES = 10000;
 const provider = new ethers.providers.JsonRpcProvider(config.provider);
@@ -39,7 +42,6 @@ if (fs.existsSync("./build/resume.json")) {
     console.log(chalk.blue("Resuming from:        ") + state.startBlock);
 }
 fs.mkdirSync("./build/metadata", { recursive: true });
-fs.mkdirSync("./build/squares-rgb", { recursive: true });
 
 
 // Contracts ///////////////////////////////////////////////////////////////////
@@ -63,6 +65,15 @@ underlay.contract = new ethers.Contract(underlay.address, underlay.abi, provider
 
 
 // Main program, synchronous ///////////////////////////////////////////////////
+/**
+ * Process a personalization that is published on TenThousandSu.com
+ * @param {Number} squareNumber 
+ * @param {Number} version 
+ * @param {String} title 
+ * @param {String} href 
+ * @param {Number} blockNumber 
+ * @param {Buffer} pixelBuffer 
+ */
 function personalize(squareNumber, version, title, href, blockNumber, pixelBuffer) {
     const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
     state.squarePersonalizations[squareNumber - 1] = [
@@ -76,10 +87,11 @@ function personalize(squareNumber, version, title, href, blockNumber, pixelBuffe
         JSON.stringify({
             "name": "Square #" + paddedSquareNumber,
             "description": title,
-            "image": "https://tenthousandsu.com/erc721/" + paddedSquareNumber + ".svg"
+            "image": "https://tenthousandsu.com/erc721/" + paddedSquareNumber + ".png"
         })
     );
-    fs.writeFileSync("./build/squares-rgb/" + paddedSquareNumber + ".rgb", pixelBuffer);
+    const isNonpersonalized = (version===0) && (title==="") && (href==="");
+    paintSuSquare(squareNumber, pixelBuffer, !isNonpersonalized);
 }
 
 const currentBlock = await provider.getBlockNumber();
@@ -164,3 +176,4 @@ state.startBlock = endBlock;
 fs.writeFileSync("build/squarePersonalizations.json", JSON.stringify(state.squarePersonalizations));
 fs.writeFileSync("build/resume.json", JSON.stringify(state));
 fs.writeFileSync("build/loadedTo.json", JSON.stringify(state.startBlock));
+await saveWholeSuSquare();
