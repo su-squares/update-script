@@ -2,7 +2,7 @@
  * Su Squares Updates
  * (c) 2021 Su & William Entriken, released under MIT license
  * 
- * Checks if any updates have occured on-chain since state recorded in resume file
+ * Checks if any updates have occurred on-chain since state recorded in resume file
  * 
  * SYNOPSIS
  * node have-there-been-updates.js
