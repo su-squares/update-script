@@ -49,7 +49,7 @@ Deploy generally looks like this.
 
 ```sh
 cp build/wholeSquare.png build/squarePersonalizations.json  build/loadedTo.json ~/Sites/tenthousandsu.com/build
-cp build/metadata/*.json build/metadata/*.svg ~/Sites/tenthousandsu.com/erc721
+cp build/metadata/*.json build/metadata/*.svg build/metadata/*.png ~/Sites/tenthousandsu.com/erc721
 cd ~/Sites/tenthousandsu.com
 git status # Manually do a sanity check git diff # Manually do a sanity check
 git commit -am 'Load from blockchain'
