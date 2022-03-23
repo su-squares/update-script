@@ -13,7 +13,7 @@
  * - build/metadata/#####.svg (OUTPUT)
  *   ERC-721 metadata image for each modified Square
  * - build/metadata/#####.png (OUTPUT)
- *   ERC-721 metadata image  for each modified Square
+ *   ERC-721 metadata image for each modified Square
  */
 
 import fs from "fs";
