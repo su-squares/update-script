@@ -19,18 +19,20 @@
 import fs from "fs";
 import { ethers } from "ethers";
 import chalk from "chalk";
-import { paintSuSquare, saveWholeSuSquare } from "./image-processing.mjs";
+import { paintSuSquare, saveWholeSuSquare } from "./libs/image-processing.mjs";
+import { publishMetadataJson } from "./libs/metadata.mjs";
+import { NUM_SQUARES } from "./libs/geometry.mjs";
+import { suSquares, underlay } from "./libs/contracts.mjs";
 const config = JSON.parse(fs.readFileSync("./config.json"));
-const NUM_SQUARES = 10000;
 const provider = new ethers.providers.JsonRpcProvider(config.provider);
 const numberOfBlocksToProcess = parseInt(process.argv[process.argv.length - 1])
     ? parseInt(process.argv[process.argv.length - 1])
-    : 1;
+    : 1000000;
 const nonpersonalizedPixelData = Buffer.from("E6".repeat(300), "hex"); // Gray
 const blackPixelData = Buffer.from("00".repeat(300), "hex"); // Black
+const METADATA_DIR = "./build/metadata";
 
-
-// State, load checkpoint //////////////////////////////////////////////////////
+// Load checkpoint state and arguments /////////////////////////////////////////
 var state = {
     startBlock: 6645906, // The main contract deployment
     squarePersonalizations: Array(NUM_SQUARES).fill(null), // null | [version, title, href, updatedBlock]
@@ -41,88 +43,44 @@ if (fs.existsSync("./build/resume.json")) {
     state = JSON.parse(fs.readFileSync("./build/resume.json"));
     console.log(chalk.blue("Resuming from:        ") + state.startBlock);
 }
-fs.mkdirSync("./build/metadata", { recursive: true });
-
-
-// Contracts ///////////////////////////////////////////////////////////////////
-const suSquares = {
-    address: "0xE9e3F9cfc1A64DFca53614a0182CFAD56c10624F",
-    abi: [
-        "function suSquares(uint256 squareNumber) view returns (uint256 version, bytes rgbData, string title, string href)",
-        "event Personalized(uint256 squareNumber)",
-        "event Transfer(address indexed from, address indexed to, uint256 indexed squareNumber)"
-    ]
-};
-suSquares.contract = new ethers.Contract(suSquares.address, suSquares.abi, provider);
-
-const underlay = {
-    address: "0x992bDEC05cD423B73085586f7DcbbDaB953E0DCd",
-    abi: [
-        "event PersonalizedUnderlay(uint256 indexed squareNumber, bytes rgbData, string title, string href)"
-    ]
-};
-underlay.contract = new ethers.Contract(underlay.address, underlay.abi, provider);
-
-
-// Main program, synchronous ///////////////////////////////////////////////////
-/**
- * Process a personalization that is published on TenThousandSu.com
- * @param {Number} squareNumber 
- * @param {Number} version 
- * @param {String} title 
- * @param {String} href 
- * @param {Number} blockNumber 
- * @param {Buffer} pixelBuffer 
- */
-function personalize(squareNumber, version, title, href, blockNumber, pixelBuffer) {
-    const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
-    state.squarePersonalizations[squareNumber - 1] = [
-        version,
-        title,
-        href,
-        blockNumber
-    ];
-    fs.writeFileSync(
-        "./build/metadata/" + paddedSquareNumber + ".json",
-        JSON.stringify({
-            "name": "Square #" + paddedSquareNumber,
-            "description": title,
-            "image": "https://tenthousandsu.com/erc721/" + paddedSquareNumber + ".png"
-        })
-    );
-    const isNonpersonalized = (version===0) && (title==="") && (href==="");
-    paintSuSquare(squareNumber, pixelBuffer, !isNonpersonalized);
-}
-
 const currentBlock = await provider.getBlockNumber();
 const endBlock = Math.min(state.startBlock + numberOfBlocksToProcess, currentBlock);
 console.log(chalk.blue("Loading to:           ") + endBlock);
 console.log(chalk.blue("Current block:        ") + currentBlock);
 
-const filterSold = suSquares.contract.filters.Transfer(suSquares.address, null, null);
-const sold = await suSquares.contract.queryFilter(filterSold, state.startBlock, endBlock);
+fs.mkdirSync(METADATA_DIR, { recursive: true });
 
-const filterPersonalized = suSquares.contract.filters.Personalized();
-const personalized = await suSquares.contract.queryFilter(filterPersonalized, state.startBlock, endBlock);
 
-const filterUnderlay = underlay.contract.filters.PersonalizedUnderlay();
-const personalizedUnderlay = await underlay.contract.queryFilter(filterUnderlay, state.startBlock, endBlock);
+// Load events /////////////////////////////////////////////////////////////////
+const suSquaresConnected = suSquares.connect(provider);
+const underlayConnected = underlay.connect(provider);
 
+const filterSold = suSquaresConnected.filters.Transfer(suSquares.address, null, null);
+const sold = await suSquaresConnected.queryFilter(filterSold, state.startBlock, endBlock);
+
+const filterPersonalized = suSquaresConnected.filters.Personalized();
+const personalized = await suSquaresConnected.queryFilter(filterPersonalized, state.startBlock, endBlock);
+
+const filterUnderlay = underlayConnected.filters.PersonalizedUnderlay();
+const personalizedUnderlay = await underlayConnected.queryFilter(filterUnderlay, state.startBlock, endBlock);
+
+
+// Process events //////////////////////////////////////////////////////////////
 for (const event of sold) {
-    const squareNumber = event.args.squareNumber;
+    const squareNumber = event.args.squareNumber.toNumber();
     console.log("Sold: " + squareNumber.toString());
-    personalize(
-        event.args.squareNumber,
+    state.squarePersonalizations[squareNumber - 1] = [
         0,
         "",
         "",
         event.blockNumber,
-        nonpersonalizedPixelData
-    );
+    ];
+    publishMetadataJson(squareNumber, "");
+    paintSuSquare(squareNumber, nonpersonalizedPixelData, false);
 }
 
 for (const event of personalizedUnderlay) {
-    const squareNumber = event.args.squareNumber;
+    const squareNumber = event.args.squareNumber.toNumber();
     console.log("Underlay: " + squareNumber.toString());
     state.underlayPersonalizations[squareNumber - 1] = {
         rgbData: event.args.rgbData.substr(2),
@@ -130,45 +88,42 @@ for (const event of personalizedUnderlay) {
         href: event.args.href
     }
     if (state.originalIsBlank[squareNumber - 1]) {
-        personalize(
-            event.args.squareNumber,
+        state.squarePersonalizations[squareNumber - 1] = [
             state.squarePersonalizations[squareNumber - 1][0],
             event.args.title,
             event.args.href,
             event.blockNumber,
-            Buffer.from(event.args.rgbData.substr(2), "hex")
-        );
+        ];
+        publishMetadataJson(squareNumber, state.squarePersonalizations[squareNumber - 1][1]);
+        paintSuSquare(squareNumber, Buffer.from(event.args.rgbData.substr(2), "hex"), true);
     }
 }
 
 for await (const event of personalized) {
-    const squareNumber = event.args.squareNumber;
+    const squareNumber = event.args.squareNumber.toNumber();
     console.log("Personalized: " + squareNumber.toString());
-    const personalization = await suSquares.contract.suSquares(squareNumber);
+    const personalization = await suSquaresConnected.suSquares(squareNumber);
+    state.squarePersonalizations[squareNumber - 1] = [
+        personalization.version.toNumber(),
+        personalization.title,
+        personalization.href,
+        event.blockNumber,
+    ];
     state.originalIsBlank[squareNumber - 1] = (
         personalization.rgbData.substr(2).toUpperCase() === blackPixelData.toString("hex").toUpperCase() &&
         personalization.title === "" &&
         personalization.href === ""
     );
     if (state.originalIsBlank[squareNumber - 1]) {
-        personalize(
-            event.args.squareNumber,
+        state.squarePersonalizations[squareNumber - 1] = [
             personalization.version.toNumber(),
             state.underlayPersonalizations[squareNumber - 1].title,
             state.underlayPersonalizations[squareNumber - 1].href,
             event.blockNumber,
-            Buffer.from(state.underlayPersonalizations[squareNumber - 1].rgbData, "hex")
-        );
-    } else {
-        personalize(
-            event.args.squareNumber,
-            personalization.version.toNumber(),
-            personalization.title,
-            personalization.href,
-            event.blockNumber,
-            Buffer.from(personalization.rgbData.substr(2), "hex")
-        );
+        ];        
     }
+    publishMetadataJson(squareNumber, state.squarePersonalizations[squareNumber - 1][1]);
+    paintSuSquare(squareNumber, Buffer.from(personalization.rgbData.substr(2), "hex"), true);
 };
 
 // Save checkpoint /////////////////////////////////////////////////////////////

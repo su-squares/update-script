@@ -8,14 +8,12 @@ You will need **Node.js 16+** and image libraries for this project. Here are ins
 
 ```sh
 # Change into the su-squares-update-script directory
-brew install node
-brew install imagemagick
-brew install nvm
+brew install node nvm yarn imagemagick pngquant
 nvm use 16
 pip3 install cairosvg
 
 # One-time install
-npm install
+yarn install
 ```
 
 Also you will need a connection to the Ethereum network. You can get an HTTP provider at https://infura.io/dashboard/ethereum/.
@@ -28,11 +26,10 @@ Configure the blockchain script by writing a file **config.json** like so:
 }
 ```
 
-Create blank SVG images and PNG because the world is not ready for SVG yet :-(
+Create blank images and metadata files (initial state before reading blockchain data):
 
 ```sh
-node create-empty-images.mjs
-ls build/metadata/*.svg | parallel --eta cairosvg {} -o {.}.png;
+node generate-empty-metadata-multithreaded.mjs
 ```
 
 ## Run it
