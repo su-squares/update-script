@@ -4,7 +4,7 @@ This script pulls data from the [Su Squares smart contract](https://github.com/s
 
 ## Setup
 
-You will need **Node.js 16+** and image libraries for this project. Here are installation instructions for macOS (tested on 10.12+).
+You will need **Node.js 16+** for this project. Here are installation instructions for macOS (tested on 10.12+).
 
 ```sh
 # Change into the su-squares-update-script directory
