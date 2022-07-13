@@ -31,6 +31,7 @@ const numberOfBlocksToProcess = parseInt(process.argv[process.argv.length - 1])
 const nonpersonalizedPixelData = Buffer.from("E6".repeat(300), "hex"); // Gray
 const blackPixelData = Buffer.from("00".repeat(300), "hex"); // Black
 const METADATA_DIR = "./build/metadata";
+const SETTLE_BLOCKS = 10;
 
 // Load checkpoint state and arguments /////////////////////////////////////////
 var state = {
@@ -41,12 +42,12 @@ var state = {
 };
 if (fs.existsSync("./build/resume.json")) {
     state = JSON.parse(fs.readFileSync("./build/resume.json"));
-    console.log(chalk.blue("Resuming from:        ") + state.startBlock);
+    console.log(chalk.blue("Resuming from:         ") + state.startBlock);
 }
-const currentBlock = await provider.getBlockNumber();
-const endBlock = Math.min(state.startBlock + numberOfBlocksToProcess, currentBlock);
-console.log(chalk.blue("Loading to:           ") + endBlock);
-console.log(chalk.blue("Current block:        ") + currentBlock);
+const currentSettledBlock = await provider.getBlockNumber() - SETTLE_BLOCKS;
+const endBlock = Math.min(state.startBlock + numberOfBlocksToProcess, currentSettledBlock);
+console.log(chalk.blue("Loading to:            ") + endBlock);
+console.log(chalk.blue("Current settled block: ") + currentSettledBlock);
 
 fs.mkdirSync(METADATA_DIR, { recursive: true });
 
