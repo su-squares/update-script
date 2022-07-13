@@ -77,8 +77,9 @@ function publishEmptySquareImage(squareNumber) {
     const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
     const svg = svgForEmptySquare(squareNumber);
     fs.writeFileSync(`${METADATA_DIR}/${paddedSquareNumber}.svg`, svg);
-    exec.execSync(`cairosvg ${METADATA_DIR}/${paddedSquareNumber}.svg -o ${METADATA_DIR}/${paddedSquareNumber}.png`);
-    exec.execSync(`pngquant ${METADATA_DIR}/${paddedSquareNumber}.png --ext .png --force --strip`);
+    return sharp(Buffer.from(svg))
+        .png({compressionLevel: 9, effort: 10})
+        .toFile(`${METADATA_DIR}/${paddedSquareNumber}.png`);
 }
 
 /**
@@ -90,8 +91,9 @@ function publishSquareImageWithRGBData(squareNumber, rgbData) {
     const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
     const svg = svgForSquareWithRGBData(squareNumber, rgbData);
     fs.writeFileSync(`${METADATA_DIR}/${paddedSquareNumber}.svg`, svg);
-    exec.execSync(`cairosvg ${METADATA_DIR}/${paddedSquareNumber}.svg -o ${METADATA_DIR}/${paddedSquareNumber}.png`);
-    exec.execSync(`pngquant ${METADATA_DIR}/${paddedSquareNumber}.png --ext .png --force --strip`);
+    return sharp(Buffer.from(svg))
+        .png({compressionLevel: 9, effort: 10})
+        .toFile(`${METADATA_DIR}/${paddedSquareNumber}.png`);
 }
 
 /**

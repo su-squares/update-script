@@ -1,7 +1,5 @@
 /**
  * Su Squares (c) 2022 Su & William Entriken
- *
- * Requires: pip3 install cairosvg; brew install pngquant
  * 
  * Create ERC-721 metadata images showing 10,000 Squares before personalization
  *
@@ -15,8 +13,11 @@ import { publishMetadataJson } from "./libs/metadata.mjs";
 import { publishEmptySquareImage } from "./libs/image-processing.mjs";
 import { Worker, isMainThread, parentPort } from "worker_threads";
 import { cpus } from 'os';
+import cliProgress from "cli-progress";
 const METADATA_DIR = "./build/metadata";
 const numCPUs = cpus().length;
+const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+bar.start(10000, 0);
 
 if (isMainThread) {
     fs.mkdirSync(METADATA_DIR, { recursive: true });
@@ -28,13 +29,15 @@ if (isMainThread) {
     for (let cpu=0; cpu<numCPUs; cpu++) {
         if (workQueue.length > 0) {
             const worker = new Worker(new URL(import.meta.url));
-            worker.on("message", squareNumber => {
-                console.log(`Generated ${squareNumber}`);
+            worker.on("message", _ => {
+                bar.increment();
+//                console.log(`Generated ${squareNumber}`);
                 if (workQueue.length > 0) {
                     worker.postMessage(workQueue.shift());
                 } else {
                     numActiveThreads--;
                     if (numActiveThreads === 0) {
+                        bar.stop();
                         process.exit(0);
                     }
                 }
@@ -46,7 +49,8 @@ if (isMainThread) {
 } else {
     parentPort.on('message', squareNumber => {
         publishMetadataJson(squareNumber);
-        publishEmptySquareImage(squareNumber);
-        parentPort.postMessage(squareNumber);
+        publishEmptySquareImage(squareNumber).then(() => {
+            parentPort.postMessage(squareNumber);
+        })
     });
 }

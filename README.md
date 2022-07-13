@@ -8,9 +8,8 @@ You will need **Node.js 16+** and image libraries for this project. Here are ins
 
 ```sh
 # Change into the su-squares-update-script directory
-brew install node nvm yarn imagemagick pngquant
+brew install node nvm yarn
 nvm use 16
-pip3 install cairosvg
 
 # One-time install
 yarn install

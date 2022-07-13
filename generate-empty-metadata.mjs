@@ -1,7 +1,5 @@
 /**
  * Su Squares (c) 2022 Su & William Entriken
- *
- * Requires: pip3 install cairosvg; brew install pngquant
  * 
  * Create ERC-721 metadata images showing 10,000 Squares before personalization
  *
@@ -19,6 +17,6 @@ fs.mkdirSync(METADATA_DIR, { recursive: true });
 
 for (let squareNumber=1; squareNumber<=10000; squareNumber++) {
     console.log(`Generating ${squareNumber}`);
-    publishMetadataJson(squareNumber);
+    await publishMetadataJson(squareNumber);
     publishEmptySquareImage(squareNumber);
 }
