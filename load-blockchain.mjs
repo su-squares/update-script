@@ -4,10 +4,14 @@
  *
  * Load updated state from blockchain into image and metadata files.
  *
- * - build/resume.json (INPUT / OUTPUT)
+ * - build/loadedTo.json (INPUT / OUTPUT)
  *   The latest processed block (if present)
- * - build/squarePersonalizations.json (OUTPUT)
+ * - build/squarePersonalizations.json (INPUT / OUTPUT)
  *   An accounting of the 10,000 Square personalizations
+ * - build/underlayPersonalizations.json (INPUT / OUTPUT)
+ *   An accounting of the 10,000 Square underlay personalizations, if set
+ * - build/underlayIsVisible.json (INPUT / OUTPUT)
+ *   Is each underlay square visible?
  * - build/metadata/#####.json (OUTPUT)
  *   ERC-721 metadata file for each modified Square
  * - build/metadata/#####.svg (OUTPUT)
@@ -22,7 +26,7 @@ import chalk from "chalk";
 import { paintSuSquare, saveWholeSuSquare } from "./libs/image-processing.mjs";
 import { publishMetadataJson } from "./libs/metadata.mjs";
 import { NUM_SQUARES } from "./libs/geometry.mjs";
-import { suSquares, underlay } from "./libs/contracts.mjs";
+import { suSquares, suSquaresDeploymentBlock, underlay } from "./libs/contracts.mjs";
 const config = JSON.parse(fs.readFileSync("./config.json"));
 const provider = new ethers.providers.JsonRpcProvider(config.provider);
 const numberOfBlocksToProcess = parseInt(process.argv[process.argv.length - 1])
@@ -35,20 +39,26 @@ const SETTLE_BLOCKS = 10;
 
 // Load checkpoint state and arguments /////////////////////////////////////////
 var state = {
-    startBlock: 6645906, // The main contract deployment
+    loadedTo: suSquaresDeploymentBlock,
     squarePersonalizations: Array(NUM_SQUARES).fill(null), // null | [version, title, href, updatedBlock]
-    originalIsBlank: Array(NUM_SQUARES).fill(true),
-    underlayPersonalizations: Array(NUM_SQUARES).fill({rgbData: blackPixelData.toString("hex"), title:"", href:""}),
+    underlayPersonalizations: Array(NUM_SQUARES).fill(null), // null | [rgbData, title, href]
+    underlayIsVisible: Array(NUM_SQUARES).fill(true), // true | false
 };
-if (fs.existsSync("./build/resume.json")) {
-    state = JSON.parse(fs.readFileSync("./build/resume.json"));
-    console.log(chalk.blue("Resuming from:         ") + state.startBlock);
+if (fs.existsSync("./build/loadedTo.json")
+    && fs.existsSync("./build/squarePersonalizations.json")
+    && fs.existsSync("./build/underlayPersonalizations.json")
+    && fs.existsSync("./build/underlayIsVisible.json")) {
+    state.loadedTo = JSON.parse(fs.readFileSync("./build/loadedTo.json"));
+    state.squarePersonalizations = JSON.parse(fs.readFileSync("./build/squarePersonalizations.json"));
+    state.underlayPersonalizations = JSON.parse(fs.readFileSync("./build/underlayPersonalizations.json"));
+    state.underlayIsVisible = JSON.parse(fs.readFileSync("./build/underlayIsVisible.json"));
 }
+
 const currentSettledBlock = await provider.getBlockNumber() - SETTLE_BLOCKS;
-const endBlock = Math.min(state.startBlock + numberOfBlocksToProcess, currentSettledBlock);
+const endBlock = Math.min(state.loadedTo + numberOfBlocksToProcess, currentSettledBlock);
+console.log(chalk.blue("Loading from:          ") + state.loadedTo);
 console.log(chalk.blue("Loading to:            ") + endBlock);
 console.log(chalk.blue("Current settled block: ") + currentSettledBlock);
-
 fs.mkdirSync(METADATA_DIR, { recursive: true });
 
 
@@ -57,13 +67,13 @@ const suSquaresConnected = suSquares.connect(provider);
 const underlayConnected = underlay.connect(provider);
 
 const filterSold = suSquaresConnected.filters.Transfer(suSquares.address, null, null);
-const sold = await suSquaresConnected.queryFilter(filterSold, state.startBlock, endBlock);
+const sold = await suSquaresConnected.queryFilter(filterSold, state.loadedTo+1, endBlock);
 
 const filterPersonalized = suSquaresConnected.filters.Personalized();
-const personalized = await suSquaresConnected.queryFilter(filterPersonalized, state.startBlock, endBlock);
+const personalized = await suSquaresConnected.queryFilter(filterPersonalized, state.loadedTo+1, endBlock);
 
 const filterUnderlay = underlayConnected.filters.PersonalizedUnderlay();
-const personalizedUnderlay = await underlayConnected.queryFilter(filterUnderlay, state.startBlock, endBlock);
+const personalizedUnderlay = await underlayConnected.queryFilter(filterUnderlay, state.loadedTo+1, endBlock);
 
 
 // Process events //////////////////////////////////////////////////////////////
@@ -83,12 +93,12 @@ for (const event of sold) {
 for (const event of personalizedUnderlay) {
     const squareNumber = event.args.squareNumber.toNumber();
     console.log("Underlay: " + squareNumber.toString());
-    state.underlayPersonalizations[squareNumber - 1] = {
-        rgbData: event.args.rgbData.substr(2),
-        title: event.args.title,
-        href: event.args.href
-    }
-    if (state.originalIsBlank[squareNumber - 1]) {
+    state.underlayPersonalizations[squareNumber - 1] = [
+        event.args.rgbData.substr(2), /* rgbData */
+        event.args.title, /* title */
+        event.args.href /* href */
+    ];
+    if (state.underlayIsVisible[squareNumber - 1]) {
         state.squarePersonalizations[squareNumber - 1] = [
             state.squarePersonalizations[squareNumber - 1][0],
             event.args.title,
@@ -103,33 +113,33 @@ for (const event of personalizedUnderlay) {
 for await (const event of personalized) {
     const squareNumber = event.args.squareNumber.toNumber();
     console.log("Personalized: " + squareNumber.toString());
-    const personalization = await suSquaresConnected.suSquares(squareNumber);
+    let {version, title, href, rgbData} = await suSquaresConnected.suSquares(squareNumber);
+    
+    state.underlayIsVisible[squareNumber - 1] = (
+        rgbData.substr(2).toUpperCase() === blackPixelData.toString("hex").toUpperCase() &&
+        title === "" &&
+        href === ""
+    );
+    if (state.underlayIsVisible[squareNumber - 1]) {
+        let underlayPersonalization = state.underlayPersonalizations[squareNumber - 1] ?? [blackPixelData.toString("hex"), "", ""];
+        title = underlayPersonalization[1];
+        href = underlayPersonalization[2];
+        rgbData = "0x" + underlayPersonalization[0];
+    }
     state.squarePersonalizations[squareNumber - 1] = [
-        personalization.version.toNumber(),
-        personalization.title,
-        personalization.href,
+        version.toNumber(),
+        title,
+        href,
         event.blockNumber,
     ];
-    state.originalIsBlank[squareNumber - 1] = (
-        personalization.rgbData.substr(2).toUpperCase() === blackPixelData.toString("hex").toUpperCase() &&
-        personalization.title === "" &&
-        personalization.href === ""
-    );
-    if (state.originalIsBlank[squareNumber - 1]) {
-        state.squarePersonalizations[squareNumber - 1] = [
-            personalization.version.toNumber(),
-            state.underlayPersonalizations[squareNumber - 1].title,
-            state.underlayPersonalizations[squareNumber - 1].href,
-            event.blockNumber,
-        ];        
-    }
     publishMetadataJson(squareNumber, state.squarePersonalizations[squareNumber - 1][1]);
-    paintSuSquare(squareNumber, Buffer.from(personalization.rgbData.substr(2), "hex"), true);
+    paintSuSquare(squareNumber, Buffer.from(rgbData.substr(2), "hex"), true);
 };
 
 // Save checkpoint /////////////////////////////////////////////////////////////
-state.startBlock = endBlock;
-fs.writeFileSync("build/squarePersonalizations.json", JSON.stringify(state.squarePersonalizations));
-fs.writeFileSync("build/resume.json", JSON.stringify(state));
-fs.writeFileSync("build/loadedTo.json", JSON.stringify(state.startBlock));
+state.loadedTo = endBlock;
 await saveWholeSuSquare();
+fs.writeFileSync("./build/loadedTo.json", JSON.stringify(state.loadedTo));
+fs.writeFileSync("./build/squarePersonalizations.json", JSON.stringify(state.squarePersonalizations));
+fs.writeFileSync("./build/underlayPersonalizations.json", JSON.stringify(state.underlayPersonalizations));
+fs.writeFileSync("./build/underlayIsVisible.json", JSON.stringify(state.underlayIsVisible));

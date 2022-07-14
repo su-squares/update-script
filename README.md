@@ -1,10 +1,10 @@
 # Su Squares Update Script
 
-This script pulls data from the [Su Squares smart contract](https://github.com/su-squares/ethereum-contract) and builds [wholeSquare.png](https://tenthousandsu.com/build/wholeSquare.png), [squarePersonalizations.json](https://tenthousandsu.com/build/squarePersonalizations.json) and the [ERC-721 metadata files](https://github.com/su-squares/tenthousandsu.com/tree/master/erc721) deployed on https://tenthousandsu.com. 
+This script pulls data from the [Su Squares smart contract](https://github.com/su-squares/ethereum-contract) and builds [the website](https://github.com/su-squares/tenthousandsu.com/) deployed on https://tenthousandsu.com. 
 
 ## Setup
 
-You will need **Node.js 16+** for this project. Here are installation instructions for macOS (tested on 10.12+).
+You will need **Node.js 16+** for this project. Here are installation instructions for macOS.
 
 ```sh
 # Change into the su-squares-update-script directory
@@ -25,7 +25,7 @@ Configure the blockchain script by writing a file **config.json** like so:
 }
 ```
 
-Create blank images and metadata files (initial state before reading blockchain data):
+Create blank metadata files and images (initial state before reading blockchain data):
 
 ```sh
 node generate-empty-metadata-multithreaded.mjs
@@ -43,9 +43,9 @@ time node load-blockchain.mjs 100000
 
 Deploy generally looks like this.
 
-```sh
-cp build/wholeSquare.png build/squarePersonalizations.json  build/loadedTo.json ~/Sites/tenthousandsu.com/build
-cp build/metadata/*.json build/metadata/*.svg build/metadata/*.png ~/Sites/tenthousandsu.com/erc721
+```zsh
+cp build/*{json,png} ~/Sites/tenthousandsu.com/build
+cp build/metadata/*.{json,svg,png} ~/Sites/tenthousandsu.com/erc721
 cd ~/Sites/tenthousandsu.com
 git status # Manually do a sanity check git diff # Manually do a sanity check
 git commit -am 'Load from blockchain'
@@ -58,7 +58,7 @@ Were there any recent updates?
 
 ```sh
 cd ~/Developer/su-squares/update-script
-node have-there-been-updates.js
+node have-there-been-updates.mjs
 ```
 
 ## License

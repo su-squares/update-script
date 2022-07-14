@@ -11,12 +11,18 @@
 import fs from "fs";
 import { publishMetadataJson } from "./libs/metadata.mjs";
 import { publishEmptySquareImage } from "./libs/image-processing.mjs";
+import cliProgress from "cli-progress";
 const METADATA_DIR = "./build/metadata";
+const bar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+bar.start(10000, 0);
 
 fs.mkdirSync(METADATA_DIR, { recursive: true });
 
 for (let squareNumber=1; squareNumber<=10000; squareNumber++) {
-    console.log(`Generating ${squareNumber}`);
-    await publishMetadataJson(squareNumber);
-    publishEmptySquareImage(squareNumber);
+    bar.increment();
+//    console.log(`Generating ${squareNumber}`);
+    publishMetadataJson(squareNumber);
+    await publishEmptySquareImage(squareNumber);
 }
+
+bar.stop();
