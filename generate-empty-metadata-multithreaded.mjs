@@ -51,6 +51,6 @@ if (isMainThread) {
         publishMetadataJson(squareNumber);
         publishEmptySquareImage(squareNumber).then(() => {
             parentPort.postMessage(squareNumber);
-        })
+        });
     });
 }

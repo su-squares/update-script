@@ -98,10 +98,9 @@ function publishSquareImageWithRGBData(squareNumber, rgbData) {
 
 /**
  * @param {Number} squareNumber 
- * @param {Buffer} rgbData 
- * @param {Boolean} generateMetadataImage
+ * @param {Buffer} rgbData
  */
-function paintSuSquare(squareNumber, rgbData, publishMetadataImage) {
+function paintSuSquare(squareNumber, rgbData) {
     const zeroBasedColumn = column(squareNumber) - 1;
     const zeroBasedRow = row(squareNumber) - 1;
 
@@ -111,9 +110,6 @@ function paintSuSquare(squareNumber, rgbData, publishMetadataImage) {
         left: INDIVIDUAL_SQUARE_EDGE_PIXELS * zeroBasedColumn,
         top: INDIVIDUAL_SQUARE_EDGE_PIXELS * zeroBasedRow,
     });
-    if (publishMetadataImage) {
-        publishSquareImageWithRGBData(squareNumber, rgbData);
-    }
 }
 
 function saveWholeSuSquare() {
