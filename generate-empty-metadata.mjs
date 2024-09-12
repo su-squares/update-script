@@ -1,5 +1,5 @@
 /**
- * Su Squares (c) Su & William Entriken
+ * (c) Su & William Entriken, released under MIT license
  * 
  * Create ERC-721 metadata images showing 10,000 Squares before personalization
  *
@@ -19,7 +19,6 @@ fs.mkdirSync(METADATA_DIR, { recursive: true });
 
 for (let squareNumber=1; squareNumber<=10000; squareNumber++) {
     bar.increment();
-//    console.log(`Generating ${squareNumber}`);
     publishMetadataJson(squareNumber);
     publishEmptySquareImage(squareNumber);
 }

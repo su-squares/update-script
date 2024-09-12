@@ -2,11 +2,8 @@
   "dependencies": {
     "chalk": "^5.0.1",
     "cli-progress": "^3.0.0",
-    "ethers": "^5.6.0",
+    "ethers": "^6.13.2",
     "sharp": "^0.33.5"
-  },
-  "engines": {
-    "node": ">=16.0.0"
   },
   "//": [
     "These are comments, https://stackoverflow.com/a/14221781/300224"

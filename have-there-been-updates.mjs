@@ -1,8 +1,7 @@
 /**
- * Su Squares Updates
  * (c) Su & William Entriken, released under MIT license
  * 
- * Checks if any updates occurred on-chain since loadedTo.json was saved.
+ * Check if any updates occurred on-chain since loadedTo.json was saved.
  * 
  * SYNOPSIS
  * node have-there-been-updates.js
@@ -17,13 +16,13 @@ import { ethers } from "ethers";
 import { suSquares, underlay } from "./libs/contracts.mjs";
 const config = JSON.parse(fs.readFileSync("./config.json"));
 const loadedTo = JSON.parse(fs.readFileSync("./build/loadedTo.json"));
-const provider = new ethers.providers.JsonRpcProvider(config.provider);
+const provider = new ethers.JsonRpcProvider(config.provider);
 
 // Load events /////////////////////////////////////////////////////////////////
 const suSquaresConnected = suSquares.connect(provider);
 const underlayConnected = underlay.connect(provider);
 
-const filterSold = suSquaresConnected.filters.Transfer(suSquares.address, null, null);
+const filterSold = suSquaresConnected.filters.Transfer(suSquares.getAddress(), null, null);
 const sold = suSquaresConnected.queryFilter(filterSold, loadedTo + 1);
 
 const filterPersonalized = suSquaresConnected.filters.Personalized();

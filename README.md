@@ -1,18 +1,3 @@
-<mark>TODO before commit</mark>
-
-- [ ] Update to ethers6
-  - [ ] Have a semantic way of representing a contract object as a separate module
-
-<mark>NEXT COMMIT</mark>
-
-- [ ] Use .svg files
-  - [ ] Switch font // make a subset of Inter font, only with the digits
-  - [ ] Trace font
-  - [ ] Make sure it looks great
-  - [ ] Update metadata to use SVG
-  - [ ] And update TenThousandSu.com to point to SVG instead of PNG on which pages?
-- [ ] Update schema / or make 
-
 # Su Squares update script
 
 This script pulls data from the [Su Squares smart contract](https://github.com/su-squares/ethereum-contract) and builds [the website](https://github.com/su-squares/tenthousandsu.com/) deployed on https://TenThousandSu.com.
@@ -91,14 +76,13 @@ Deploy generally looks like this.
 ```zsh
 cp build/*.{json,png} ~/Sites/tenthousandsu.com/build
 cp build/metadata/*.{json,svg} ~/Sites/tenthousandsu.com/erc721
-rm ~/Sites/tenthousandsu.com/erc721/*.png # only need one time when upgrading to SVG
 cd ~/Sites/tenthousandsu.com
 git status # Manually do a sanity check git diff # Manually do a sanity check
 git commit -am 'Load from blockchain'
 git push
 ```
 
-You can set this up as a cron job. But in production we are running this manually based on [email alerts from Etherscan](https://etherscan.io/myaddress) and specific customer requests.
+We run this as a cron job.
 
 Were there any recent updates?
 
