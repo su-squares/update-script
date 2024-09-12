@@ -1,6 +1,6 @@
 /**
  * Su Squares Updates
- * (c) 2021 Su & William Entriken, released under MIT license
+ * (c) Su & William Entriken, released under MIT license
  * 
  * Checks if any updates occurred on-chain since loadedTo.json was saved.
  * 

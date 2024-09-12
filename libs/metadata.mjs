@@ -1,6 +1,6 @@
 /**
  * Su Squares Updates
- * (c) 2021 Su & William Entriken, released under MIT license
+ * (c) Su & William Entriken, released under MIT license
  *
  * Create ERC-721 images showing 10,000 Squares before personalization
  */
@@ -24,12 +24,13 @@ function numberOfPrimeDivisorsCountedWithMultiplicity(integer) {
 }
 
 function palindromeClassification(integer) {
+    const str = integer.toString();
     // If all digits are the same
-    if (integer.toString().split("").every(digit => digit === integer.toString()[0])) {
+    if (str.split("").every(digit => digit === str[0])) {
         return "ALL SAME DIGIT";
     }
     // If palindrome
-    if (integer.toString() === integer.toString().split("").reverse().join("")) {
+    if (str === str.split("").reverse().join("")) {
         return "PALINDROME";
     }
     return "NOT A PALINDROME";
@@ -45,7 +46,7 @@ function publishMetadataJson(squareNumber, title="Available for sale") {
     const metadata = {
         name: `Square #${squareNumber}`,
         description: title,
-        image: `https://tenthousandsu.com/erc721/${paddedSquareNumber}.png`,
+        image: `https://tenthousandsu.com/erc721/${paddedSquareNumber}.svg`,
         external_url: `https://tenthousandsu.com/square#${paddedSquareNumber}`,
         attributes: [
             {

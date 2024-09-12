@@ -4,3 +4,4 @@ node_modules/
 # application
 build/
 config.json
+!build/README.md

@@ -1,10 +1,9 @@
 /**
- * Su Squares (c) 2022 Su & William Entriken
+ * Su Squares (c) Su & William Entriken
  * 
  * Create ERC-721 metadata images showing 10,000 Squares before personalization
  *
  * - build/metadata/[00001-10000].svg (OUTPUT)
- * - build/metadata/[00001-10000].png (OUTPUT)
  * - build/metadata/[00001-10000].json (OUTPUT)
  */
 
@@ -22,7 +21,7 @@ for (let squareNumber=1; squareNumber<=10000; squareNumber++) {
     bar.increment();
 //    console.log(`Generating ${squareNumber}`);
     publishMetadataJson(squareNumber);
-    await publishEmptySquareImage(squareNumber);
+    publishEmptySquareImage(squareNumber);
 }
 
 bar.stop();

@@ -1,6 +1,6 @@
 /**
  * Su Squares Updates
- * (c) 2021 Su & William Entriken, released under MIT license
+ * (c) Su & William Entriken, released under MIT license
  *
  * Basic pixel and layout information for Su Squares
  */
@@ -23,10 +23,8 @@ function manhattanDistance(squareNumber1, squareNumber2) {
 }
 
 function manhattanDistanceToCenter(squareNumber) {
-    var squareNumber = squareNumber;
-    return Math.min.apply(
-        null,
-        CENTER_SQUARES.map(centerSquare => manhattanDistance(centerSquare, squareNumber)),
+    return Math.min(
+        ...CENTER_SQUARES.map(centerSquare => manhattanDistance(centerSquare, squareNumber)),
     )
 }
 

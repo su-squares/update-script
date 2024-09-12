@@ -1,47 +1,49 @@
 /**
  * Su Squares Updates
- * (c) 2021 Su & William Entriken, released under MIT license
+ * (c) Su & William Entriken, released under MIT license
  *
  * Slice images from Squares into the complete image
  */
 
 import fs from "fs";
 import sharp from "sharp";
-import exec from "child_process";
 import { INDIVIDUAL_SQUARE_EDGE_PIXELS, row, column } from "./geometry.mjs";
 const EMPTY_BOARD = "assets/empty-board.png";
 const BUILT_BOARD = "build/wholeSquare.png";
 const METADATA_DIR = "build/metadata";
 const composites = [];
+const fontBase64 = fs.readFileSync("assets/Inter-bold-subset.txt", "utf-8");
 
 /**
- * Generate SVG image for an unpersonalized Square
+ * Publish SVG image for an unpersonalized Square to the metadata folder
  * @param {Number} squareNumber 
- * @returns String SVG data
  */
-function svgForEmptySquare(squareNumber) {
+function publishEmptySquareImage(squareNumber) {
     const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
-    return [
+    const svg = [
         `<svg width="800" height="1000" xmlns="http://www.w3.org/2000/svg">`,
         `<defs>`,
+        `<style>`,
+        `@font-face {font-family:'Inter';src:url('data:font/woff2;base64,${fontBase64}')}`,
+        `</style>`,
         `<linearGradient id="g" x1="0" x2="1" y1="0" y2="1">`,
         `<stop offset="0%" stop-color="#2d3c96"/>`,
         `<stop offset="100%" stop-color="#d53392"/>`,
         `</linearGradient>`,
         `</defs>`,
         `<rect x="10" y="10" width="780" height="980" fill="url(#g)" rx="50" ry="50" stroke="gold" stroke-width="20"/>`,
-        `<text x="400" y="570" width="780" text-anchor="middle" style="font:bold 200px 'Helvetica Neue';fill:gold">${paddedSquareNumber}</text>`,
+        `<text x="400" y="570" text-anchor="middle" style="font-family:'Inter';font-size:200px;fill:gold;">${paddedSquareNumber}</text>`,
         `</svg>`,
     ].join("");
+    fs.writeFileSync(`${METADATA_DIR}/${paddedSquareNumber}.svg`, svg);
 }
 
 /**
- * Generate SVG image for a personalized Square
+ * Publish SVG image for a personalized Square to the metadata folder
  * @param {Number} squareNumber 
- * @param {Buffer} rgbData 
- * @returns 
+ * @param {Buffer} rgbData
  */
-function svgForSquareWithRGBData(squareNumber, rgbData) {
+function publishSquareImageWithRGBData(squareNumber, rgbData) {
     const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
     const svgPixels = [];
     for (let x=0; x<INDIVIDUAL_SQUARE_EDGE_PIXELS; x++) {
@@ -52,48 +54,25 @@ function svgForSquareWithRGBData(squareNumber, rgbData) {
             svgPixels.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="#${rgbPixelHex}" />`);
         }
     }
-    return [
+    const svg = [
         `<svg width="800" height="1000" xmlns="http://www.w3.org/2000/svg">`,
         `<defs>`,
+        `<style>`,
+        `@font-face {font-family:'Inter';src:url('data:font/woff2;base64,${fontBase64}')}`,
+        `</style>`,
         `<linearGradient id="g" x1="0" x2="1" y1="0" y2="1">`,
         `<stop offset="0%" stop-color="#2d3c96"/>`,
         `<stop offset="100%" stop-color="#d53392"/>`,
         `</linearGradient>`,
         `</defs>`,
         `<rect x="10" y="10" width="780" height="980" fill="url(#g)" rx="50" ry="50" stroke="gold" stroke-width="20"/>`,
-        `<text x="400" y="920" width="780" text-anchor="middle" style="font:bold 200px 'Helvetica Neue';fill:gold">${paddedSquareNumber}</text>`,
+        `<text x="400" y="920" text-anchor="middle" style="font-family:'Inter';font-size:200px;fill:gold">${paddedSquareNumber}</text>`,
         `<g transform="translate(80 80) scale(64)">`,
         ...svgPixels,
         `</g>`,
         `</svg>`,
     ].join("");
-}
-
-/**
- * Publish SVG and PNG images to the metadata folder
- * @param {Number} squareNumber 
- */
-function publishEmptySquareImage(squareNumber) {
-    const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
-    const svg = svgForEmptySquare(squareNumber);
     fs.writeFileSync(`${METADATA_DIR}/${paddedSquareNumber}.svg`, svg);
-    return sharp(Buffer.from(svg))
-        .png({compressionLevel: 9, effort: 10})
-        .toFile(`${METADATA_DIR}/${paddedSquareNumber}.png`);
-}
-
-/**
- * Publish SVG and PNG images to the metadata folder
- * @param {Number} squareNumber 
- * @param {Buffer} rgbData}
- */
-function publishSquareImageWithRGBData(squareNumber, rgbData) {
-    const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
-    const svg = svgForSquareWithRGBData(squareNumber, rgbData);
-    fs.writeFileSync(`${METADATA_DIR}/${paddedSquareNumber}.svg`, svg);
-    return sharp(Buffer.from(svg))
-        .png({compressionLevel: 9, effort: 10})
-        .toFile(`${METADATA_DIR}/${paddedSquareNumber}.png`);
 }
 
 /**
