@@ -59,10 +59,10 @@ function publishEmptySquareImage(squareNumber) {
 function publishSquareImageWithRGBData(squareNumber, rgbData) {
     const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
     const svgPixels = [];
-    for (let x=0; x<INDIVIDUAL_SQUARE_EDGE_PIXELS; x++) {
-        for (let y=0; y<INDIVIDUAL_SQUARE_EDGE_PIXELS; y++) {
-            const pixelNum = y*INDIVIDUAL_SQUARE_EDGE_PIXELS + x;
-            const rgbPixel = rgbData.subarray(pixelNum*3, pixelNum*3+3);
+    for (let x = 0; x < INDIVIDUAL_SQUARE_EDGE_PIXELS; x++) {
+        for (let y = 0; y < INDIVIDUAL_SQUARE_EDGE_PIXELS; y++) {
+            const pixelNum = y * INDIVIDUAL_SQUARE_EDGE_PIXELS + x;
+            const rgbPixel = rgbData.subarray(pixelNum * 3, pixelNum * 3 + 3);
             const rgbPixelHex = uint8ArrayToHex(rgbPixel);
             svgPixels.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="#${rgbPixelHex}" />`);
         }

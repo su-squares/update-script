@@ -94,14 +94,64 @@ fs.mkdirSync(METADATA_DIR, { recursive: true });
 const suSquaresConnected = suSquares.connect(provider);
 const underlayConnected = underlay.connect(provider);
 
+// Helper function to query logs in chunks (RPC block range limit workaround)
+async function queryFilterInChunks(contract, filter, fromBlock, toBlock, filterName, maxChunkSize = 2000) {
+    const allEvents = [];
+    const MAX_RETRIES = 5;
+    const INITIAL_DELAY_MS = 500;
+    const CHUNK_DELAY_MS = 1000; // Delay between chunk requests to avoid rate limiting
+
+    console.log(chalk.blue(`\nFetching ${filterName} events...`));
+
+    for (let currentBlock = fromBlock; currentBlock <= toBlock; currentBlock += maxChunkSize) {
+        const chunkEnd = Math.min(currentBlock + maxChunkSize - 1, toBlock);
+
+        // Add delay before each chunk request (except the first one)
+        if (currentBlock !== fromBlock) {
+            await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY_MS));
+        }
+
+        let retryCount = 0;
+        let lastError;
+
+        while (retryCount < MAX_RETRIES) {
+            try {
+                console.log(chalk.gray(`  [${filterName}] blocks ${currentBlock} to ${chunkEnd}...`));
+                const events = await contract.queryFilter(filter, currentBlock, chunkEnd);
+                allEvents.push(...events);
+                break; // Success, move to next chunk
+            } catch (error) {
+                lastError = error;
+                const isRateLimit = error.code === -32005 || error.message?.includes('Too Many Requests');
+
+                if (isRateLimit && retryCount < MAX_RETRIES - 1) {
+                    const delayMs = INITIAL_DELAY_MS * Math.pow(2, retryCount); // Exponential backoff
+                    console.log(chalk.yellow(`  [${filterName}] Rate limited, retrying in ${delayMs}ms (attempt ${retryCount + 1}/${MAX_RETRIES})...`));
+                    await new Promise(resolve => setTimeout(resolve, delayMs));
+                    retryCount++;
+                } else {
+                    throw error;
+                }
+            }
+        }
+
+        if (retryCount === MAX_RETRIES && lastError) {
+            throw lastError;
+        }
+    }
+
+    console.log(chalk.green(`  ✓ Found ${allEvents.length} ${filterName} events`));
+    return allEvents;
+}
+
 const filterSold = suSquaresConnected.filters.Transfer(suSquares.getAddress(), null, null);
-const sold = await suSquaresConnected.queryFilter(filterSold, state.loadedTo+1, endBlock);
+const sold = await queryFilterInChunks(suSquaresConnected, filterSold, state.loadedTo + 1, endBlock, 'Transfer');
 
 const filterPersonalized = suSquaresConnected.filters.Personalized();
-const personalized = await suSquaresConnected.queryFilter(filterPersonalized, state.loadedTo+1, endBlock);
+const personalized = await queryFilterInChunks(suSquaresConnected, filterPersonalized, state.loadedTo + 1, endBlock, 'Personalized');
 
 const filterUnderlay = underlayConnected.filters.PersonalizedUnderlay();
-const personalizedUnderlay = await underlayConnected.queryFilter(filterUnderlay, state.loadedTo+1, endBlock);
+const personalizedUnderlay = await queryFilterInChunks(underlayConnected, filterUnderlay, state.loadedTo + 1, endBlock, 'PersonalizedUnderlay');
 
 if (personalized.length > 100) {
     console.log(chalk.red("Too many personalized events, server will choke. Try updating fewer. Exiting."));
@@ -114,7 +164,7 @@ function personalize(squareNumber, title, href, rgbData) {
     publishMetadataJson(squareNumber, title);
     paintSuSquare(squareNumber, rgbData);
     publishSquareImageWithRGBData(squareNumber, rgbData);
-}       
+}
 
 for (const event of sold) {
     const squareNumber = Number(event.args.squareNumber);
@@ -145,9 +195,9 @@ for (const event of personalizedUnderlay) {
 for await (const event of personalized) {
     const squareNumber = Number(event.args.squareNumber);
     console.log(`Personalized main contract: ${squareNumber} at block ${event.blockNumber}`);
-    let {version, title, href, rgbData} = await suSquaresConnected.suSquares(squareNumber);
+    let { version, title, href, rgbData } = await suSquaresConnected.suSquares(squareNumber);
 
-    const mainIsPersonalized = title !== "" 
+    const mainIsPersonalized = title !== ""
         || href !== ""
         || rgbData !== ("0x" + uint8ArrayToHex(blackPixelData)); // 0x000 is not case sensitive
 
