@@ -1,6 +1,6 @@
 # Su Squares update script
 
-This script pulls data from the [Su Squares smart contract](https://github.com/su-squares/ethereum-contract) and builds [the website](https://github.com/su-squares/tenthousandsu.com/) deployed on https://TenThousandSu.com.
+This script pulls data from the [Su Squares smart contract](https://github.com/su-squares/ethereum-contract) and builds [the website](https://github.com/su-squares/tenthousandsu.com/) deployed on <https://TenThousandSu.com>.
 
 ## Setup
 
@@ -16,9 +16,9 @@ yarn install
 
 ### Ethereum
 
-Also you will need a connection to the Ethereum network. You can get an HTTP provider at https://infura.io/dashboard/ethereum/.
+Also you will need a connection to the Ethereum network. You can get an HTTP provider at <https://infura.io/dashboard/ethereum/>.
 
-Configure the blockchain script by writing a file **config.json** like so: 
+Configure the blockchain script by writing a file **config.json** like so:
 
 ```json
 {
@@ -90,6 +90,10 @@ Were there any recent updates?
 cd ~/Developer/su-squares/update-script
 node have-there-been-updates.mjs
 ```
+
+## References
+
+- Consider Buffer as deprecated <https://sindresorhus.com/blog/goodbye-nodejs-buffer>
 
 ## License
 

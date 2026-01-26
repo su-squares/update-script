@@ -24,13 +24,44 @@ import { paintSuSquare, saveWholeSuSquare, publishSquareImageWithRGBData } from 
 import { publishMetadataJson } from "./libs/metadata.mjs";
 import { NUM_SQUARES } from "./libs/geometry.mjs";
 import { suSquares, suSquaresDeploymentBlock, underlay } from "./libs/contracts.mjs";
+
+// Convert hex string to Uint8Array (optimized with lookup table)
+const hexToDecimalLookupTable = {
+    '0': 0, '1': 1, '2': 2, '3': 3, '4': 4,
+    '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
+    'a': 10, 'b': 11, 'c': 12, 'd': 13, 'e': 14, 'f': 15,
+    'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15,
+};
+
+function hexToUint8Array(hexString) {
+    if (hexString.length % 2 !== 0) {
+        throw new Error('Invalid hex string length.');
+    }
+
+    const resultLength = hexString.length / 2;
+    const bytes = new Uint8Array(resultLength);
+
+    for (let index = 0; index < resultLength; index++) {
+        const highNibble = hexToDecimalLookupTable[hexString[index * 2]];
+        const lowNibble = hexToDecimalLookupTable[hexString[(index * 2) + 1]];
+
+        if (highNibble === undefined || lowNibble === undefined) {
+            throw new Error(`Invalid hex character encountered at position ${index * 2}`);
+        }
+
+        bytes[index] = (highNibble << 4) | lowNibble;
+    }
+
+    return bytes;
+}
+
 const config = JSON.parse(fs.readFileSync("./config.json"));
 const provider = new ethers.JsonRpcProvider(config.provider);
 const numberOfBlocksToProcess = parseInt(process.argv[process.argv.length - 1])
     ? parseInt(process.argv[process.argv.length - 1])
     : 1000000;
-const nonpersonalizedPixelData = Buffer.from("E6".repeat(300), "hex"); // Gray
-const blackPixelData = Buffer.from("00".repeat(300), "hex"); // Black
+const nonpersonalizedPixelData = hexToUint8Array("E6".repeat(300)); // Gray
+const blackPixelData = hexToUint8Array("00".repeat(300)); // Black
 const METADATA_DIR = "./build/metadata";
 const SETTLE_BLOCKS = 10;
 
@@ -107,7 +138,7 @@ for (const event of personalizedUnderlay) {
     ];
     if (state.squareExtra[squareNumber - 1][2 /* mainIsPersonalized */] === false) {
         state.squareExtra[squareNumber - 1][1 /* updatedBlock */] = event.blockNumber;
-        personalize(squareNumber, event.args.title, event.args.href, Buffer.from(event.args.rgbData.substr(2), "hex"));
+        personalize(squareNumber, event.args.title, event.args.href, hexToUint8Array(event.args.rgbData.substr(2)));
     }
 }
 
@@ -118,7 +149,7 @@ for await (const event of personalized) {
 
     const mainIsPersonalized = title !== "" 
         || href !== ""
-        || rgbData !== ("0x" + blackPixelData.toString("hex")); // 0x000 is not case sensitive
+        || rgbData !== ("0x" + uint8ArrayToHex(blackPixelData)); // 0x000 is not case sensitive
 
     state.squareExtra[squareNumber - 1] = [
         state.squareExtra[squareNumber - 1][0], // mintedBlock
@@ -128,9 +159,9 @@ for await (const event of personalized) {
     ];
 
     if (mainIsPersonalized) {
-        personalize(squareNumber, title, href, Buffer.from(rgbData.substr(2), "hex"));
+        personalize(squareNumber, title, href, hexToUint8Array(rgbData.substr(2)));
     } else if (state.underlayPersonalizations[squareNumber - 1] !== null) {
-        personalize(squareNumber, state.underlayPersonalizations[squareNumber - 1][0], state.underlayPersonalizations[squareNumber - 1][1], Buffer.from(state.underlayPersonalizations[squareNumber - 1][2], "hex"));
+        personalize(squareNumber, state.underlayPersonalizations[squareNumber - 1][0], state.underlayPersonalizations[squareNumber - 1][1], hexToUint8Array(state.underlayPersonalizations[squareNumber - 1][2]));
     } else {
         personalize(squareNumber, "", "", nonpersonalizedPixelData);
     }

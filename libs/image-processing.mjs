@@ -8,6 +8,19 @@
 import fs from "fs";
 import sharp from "sharp";
 import { INDIVIDUAL_SQUARE_EDGE_PIXELS, row, column } from "./geometry.mjs";
+
+// Convert Uint8Array to hex string (optimized with lookup table)
+const byteToHexLookupTable = Array.from({ length: 256 },
+    (_, index) => index.toString(16).padStart(2, '0'));
+
+function uint8ArrayToHex(array) {
+    let hexString = '';
+    for (let index = 0; index < array.length; index++) {
+        hexString += byteToHexLookupTable[array[index]];
+    }
+    return hexString;
+}
+
 const EMPTY_BOARD = "assets/empty-board.png";
 const BUILT_BOARD = "build/wholeSquare.png";
 const METADATA_DIR = "build/metadata";
@@ -41,7 +54,7 @@ function publishEmptySquareImage(squareNumber) {
 /**
  * Publish SVG image for a personalized Square to the metadata folder
  * @param {Number} squareNumber 
- * @param {Buffer} rgbData
+ * @param {Uint8Array} rgbData
  */
 function publishSquareImageWithRGBData(squareNumber, rgbData) {
     const paddedSquareNumber = ("00000" + squareNumber).slice(-5);
@@ -49,8 +62,8 @@ function publishSquareImageWithRGBData(squareNumber, rgbData) {
     for (let x=0; x<INDIVIDUAL_SQUARE_EDGE_PIXELS; x++) {
         for (let y=0; y<INDIVIDUAL_SQUARE_EDGE_PIXELS; y++) {
             const pixelNum = y*INDIVIDUAL_SQUARE_EDGE_PIXELS + x;
-            const rgbPixel = rgbData.slice(pixelNum*3, pixelNum*3+3);
-            const rgbPixelHex = rgbPixel.toString("hex");
+            const rgbPixel = rgbData.subarray(pixelNum*3, pixelNum*3+3);
+            const rgbPixelHex = uint8ArrayToHex(rgbPixel);
             svgPixels.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="#${rgbPixelHex}" />`);
         }
     }
@@ -77,7 +90,7 @@ function publishSquareImageWithRGBData(squareNumber, rgbData) {
 
 /**
  * @param {Number} squareNumber 
- * @param {Buffer} rgbData
+ * @param {Uint8Array} rgbData
  */
 function paintSuSquare(squareNumber, rgbData) {
     const zeroBasedColumn = column(squareNumber) - 1;
