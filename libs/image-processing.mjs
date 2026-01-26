@@ -21,8 +21,8 @@ function uint8ArrayToHex(array) {
     return hexString;
 }
 
-const EMPTY_BOARD = "assets/empty-board.png";
-const BUILT_BOARD = "build/wholeSquare.png";
+const EMPTY_BOARD = "assets/empty-board.webp";
+const BUILT_BOARD = "build/wholeSquare.webp";
 const METADATA_DIR = "build/metadata";
 const composites = [];
 const fontBase64 = fs.readFileSync("assets/Inter-bold-subset.txt", "utf-8");

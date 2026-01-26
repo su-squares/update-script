@@ -2,7 +2,7 @@
  * (c) Su & William Entriken, released under MIT license
  * 
  * SYNOPSIS
- * node load-blockchain.js [numberOfBlocksToProcess]
+ * node load-blockchain.js [numberOfBlocksToProcess] [chunkSize]
  *
  * Read and update state from blockchain into JSON as specified in SCHEMA.md:
  *
@@ -69,9 +69,8 @@ function uint8ArrayToHex(array) {
 
 const config = JSON.parse(fs.readFileSync("./config.json"));
 const provider = new ethers.JsonRpcProvider(config.provider);
-const numberOfBlocksToProcess = parseInt(process.argv[process.argv.length - 1])
-    ? parseInt(process.argv[process.argv.length - 1])
-    : 1000000;
+const numberOfBlocksToProcess = parseInt(process.argv[2]) || 1000000;
+const chunkSize = parseInt(process.argv[3]) || 2000;
 const nonpersonalizedPixelData = hexToUint8Array("E6".repeat(300)); // Gray
 const blackPixelData = hexToUint8Array("00".repeat(300)); // Black
 const METADATA_DIR = "./build/metadata";
@@ -98,6 +97,7 @@ const currentSettledBlock = await provider.getBlockNumber() - SETTLE_BLOCKS;
 const endBlock = Math.min(state.loadedTo + numberOfBlocksToProcess, currentSettledBlock);
 console.log(chalk.blue("Loaded to:             ") + state.loadedTo);
 console.log(chalk.blue("Loading to:            ") + endBlock);
+console.log(chalk.blue("Chunk size:            ") + chunkSize);
 console.log(chalk.blue("Current settled block: ") + currentSettledBlock);
 fs.mkdirSync(METADATA_DIR, { recursive: true });
 
@@ -157,13 +157,13 @@ async function queryFilterInChunks(contract, filter, fromBlock, toBlock, filterN
 }
 
 const filterSold = suSquaresConnected.filters.Transfer(suSquares.getAddress(), null, null);
-const sold = await queryFilterInChunks(suSquaresConnected, filterSold, state.loadedTo + 1, endBlock, 'Transfer');
+const sold = await queryFilterInChunks(suSquaresConnected, filterSold, state.loadedTo + 1, endBlock, 'Transfer', chunkSize);
 
 const filterPersonalized = suSquaresConnected.filters.Personalized();
-const personalized = await queryFilterInChunks(suSquaresConnected, filterPersonalized, state.loadedTo + 1, endBlock, 'Personalized');
+const personalized = await queryFilterInChunks(suSquaresConnected, filterPersonalized, state.loadedTo + 1, endBlock, 'Personalized', chunkSize);
 
 const filterUnderlay = underlayConnected.filters.PersonalizedUnderlay();
-const personalizedUnderlay = await queryFilterInChunks(underlayConnected, filterUnderlay, state.loadedTo + 1, endBlock, 'PersonalizedUnderlay');
+const personalizedUnderlay = await queryFilterInChunks(underlayConnected, filterUnderlay, state.loadedTo + 1, endBlock, 'PersonalizedUnderlay', chunkSize);
 
 if (personalized.length > 100) {
     console.log(chalk.red("Too many personalized events, server will choke. Try updating fewer. Exiting."));
