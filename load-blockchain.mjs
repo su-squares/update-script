@@ -55,6 +55,18 @@ function hexToUint8Array(hexString) {
     return bytes;
 }
 
+// Convert Uint8Array to hex string (optimized with lookup table)
+const byteToHexLookupTable = Array.from({ length: 256 },
+    (_, index) => index.toString(16).padStart(2, '0'));
+
+function uint8ArrayToHex(array) {
+    let hexString = '';
+    for (let index = 0; index < array.length; index++) {
+        hexString += byteToHexLookupTable[array[index]];
+    }
+    return hexString;
+}
+
 const config = JSON.parse(fs.readFileSync("./config.json"));
 const provider = new ethers.JsonRpcProvider(config.provider);
 const numberOfBlocksToProcess = parseInt(process.argv[process.argv.length - 1])
