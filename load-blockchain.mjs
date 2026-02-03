@@ -24,6 +24,7 @@ import { paintSuSquare, saveWholeSuSquare, publishSquareImageWithRGBData } from 
 import { publishMetadataJson } from "./libs/metadata.mjs";
 import { NUM_SQUARES } from "./libs/geometry.mjs";
 import { suSquares, suSquaresDeploymentBlock, underlay } from "./libs/contracts.mjs";
+import "dotenv/config";
 
 // Convert hex string to Uint8Array (optimized with lookup table)
 const hexToDecimalLookupTable = {
@@ -67,8 +68,7 @@ function uint8ArrayToHex(array) {
     return hexString;
 }
 
-const config = JSON.parse(fs.readFileSync("./config.json"));
-const provider = new ethers.JsonRpcProvider(config.provider);
+const provider = new ethers.JsonRpcProvider(process.env.PROVIDER_URL);
 const numberOfBlocksToProcess = parseInt(process.argv[2]) || 1000000;
 const chunkSize = parseInt(process.argv[3]) || 2000;
 const nonpersonalizedPixelData = hexToUint8Array("E6".repeat(300)); // Gray

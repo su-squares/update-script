@@ -13,10 +13,13 @@
 
 import fs from "fs";
 import { ethers } from "ethers";
-import { suSquares, underlay } from "./libs/contracts.mjs";
-const config = JSON.parse(fs.readFileSync("./config.json"));
-const loadedTo = JSON.parse(fs.readFileSync("./build/loadedTo.json"));
-const provider = new ethers.JsonRpcProvider(config.provider);
+import "dotenv/config";
+import { suSquares, suSquaresDeploymentBlock, underlay } from "./libs/contracts.mjs";
+
+const loadedTo = fs.existsSync("./build/loadedTo.json")
+    ? JSON.parse(fs.readFileSync("./build/loadedTo.json"))
+    : suSquaresDeploymentBlock;
+const provider = new ethers.JsonRpcProvider(process.env.PROVIDER_URL);
 
 // Load events /////////////////////////////////////////////////////////////////
 const suSquaresConnected = suSquares.connect(provider);
@@ -38,8 +41,23 @@ await Promise.all([sold, personalized, personalizedUnderlay]).then((values) => {
     console.log(`  ${soldEvents.length} sold`);
     console.log(`  ${personalizedEvents.length} personalized`);
     console.log(`  ${personalizedUnderlayEvents.length} personalized underlay`);
-    if (soldEvents.length + personalizedEvents.length + personalizedUnderlayEvents.length === 0) {
+
+    const allEvents = [...soldEvents, ...personalizedEvents, ...personalizedUnderlayEvents];
+    if (allEvents.length === 0) {
         process.exit(0); // success
     }
+
+    // Find the earliest block with a change
+    const earliestBlock = Math.min(...allEvents.map(e => e.blockNumber));
+    console.log(`\nNext update at block: ${earliestBlock}`);
+
+    // Update loadedTo to just before the earliest change
+    const newLoadedTo = Math.max(loadedTo, earliestBlock - 1);
+    if (newLoadedTo > loadedTo) {
+        fs.mkdirSync("./build", { recursive: true });
+        fs.writeFileSync("./build/loadedTo.json", JSON.stringify(newLoadedTo));
+        console.log(`Updated loadedTo.json: ${loadedTo} → ${newLoadedTo}`);
+    }
+
     process.exit(1); // failure
 });
