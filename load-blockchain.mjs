@@ -106,11 +106,36 @@ fs.mkdirSync(METADATA_DIR, { recursive: true });
 const suSquaresConnected = suSquares.connect(provider);
 const underlayConnected = underlay.connect(provider);
 
+// Helper function to retry RPC calls with exponential backoff
+async function withRetry(fn, description) {
+    const MAX_RETRIES = 5;
+    const INITIAL_DELAY_MS = 500;
+    let retryCount = 0;
+    let lastError;
+
+    while (retryCount < MAX_RETRIES) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error;
+            const isRateLimit = error.code === -32005 || error.message?.includes('Too Many Requests');
+
+            if (isRateLimit && retryCount < MAX_RETRIES - 1) {
+                const delayMs = INITIAL_DELAY_MS * Math.pow(2, retryCount);
+                console.log(chalk.yellow(`  [${description}] Rate limited, retrying in ${delayMs}ms (attempt ${retryCount + 1}/${MAX_RETRIES})...`));
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                retryCount++;
+            } else {
+                throw error;
+            }
+        }
+    }
+    throw lastError;
+}
+
 // Helper function to query logs in chunks (RPC block range limit workaround)
 async function queryFilterInChunks(contract, filter, fromBlock, toBlock, filterName, maxChunkSize = 2000) {
     const allEvents = [];
-    const MAX_RETRIES = 5;
-    const INITIAL_DELAY_MS = 500;
     const CHUNK_DELAY_MS = 1000; // Delay between chunk requests to avoid rate limiting
 
     console.log(chalk.blue(`\nFetching ${filterName} events...`));
@@ -123,33 +148,12 @@ async function queryFilterInChunks(contract, filter, fromBlock, toBlock, filterN
             await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY_MS));
         }
 
-        let retryCount = 0;
-        let lastError;
-
-        while (retryCount < MAX_RETRIES) {
-            try {
-                console.log(chalk.gray(`  [${filterName}] blocks ${currentBlock} to ${chunkEnd}...`));
-                const events = await contract.queryFilter(filter, currentBlock, chunkEnd);
-                allEvents.push(...events);
-                break; // Success, move to next chunk
-            } catch (error) {
-                lastError = error;
-                const isRateLimit = error.code === -32005 || error.message?.includes('Too Many Requests');
-
-                if (isRateLimit && retryCount < MAX_RETRIES - 1) {
-                    const delayMs = INITIAL_DELAY_MS * Math.pow(2, retryCount); // Exponential backoff
-                    console.log(chalk.yellow(`  [${filterName}] Rate limited, retrying in ${delayMs}ms (attempt ${retryCount + 1}/${MAX_RETRIES})...`));
-                    await new Promise(resolve => setTimeout(resolve, delayMs));
-                    retryCount++;
-                } else {
-                    throw error;
-                }
-            }
-        }
-
-        if (retryCount === MAX_RETRIES && lastError) {
-            throw lastError;
-        }
+        console.log(chalk.gray(`  [${filterName}] blocks ${currentBlock} to ${chunkEnd}...`));
+        const events = await withRetry(
+            () => contract.queryFilter(filter, currentBlock, chunkEnd),
+            filterName
+        );
+        allEvents.push(...events);
     }
 
     console.log(chalk.green(`  ✓ Found ${allEvents.length} ${filterName} events`));
@@ -207,7 +211,10 @@ for (const event of personalizedUnderlay) {
 for await (const event of personalized) {
     const squareNumber = Number(event.args.squareNumber);
     console.log(`Personalized main contract: ${squareNumber} at block ${event.blockNumber}`);
-    let { version, title, href, rgbData } = await suSquaresConnected.suSquares(squareNumber);
+    let { version, title, href, rgbData } = await withRetry(
+        () => suSquaresConnected.suSquares(squareNumber),
+        `suSquares(${squareNumber})`
+    );
 
     const mainIsPersonalized = title !== ""
         || href !== ""
