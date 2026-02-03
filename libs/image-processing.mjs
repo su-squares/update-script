@@ -113,6 +113,7 @@ function saveWholeSuSquare() {
     const inputBuffer = fs.readFileSync(inputFile);
     return sharp(inputBuffer)
         .composite(composites)
+        .webp({ lossless: true })
         .toFile(BUILT_BOARD);
 }
 
