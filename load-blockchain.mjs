@@ -2,7 +2,7 @@
  * (c) Su & William Entriken, released under MIT license
  * 
  * SYNOPSIS
- * node load-blockchain.js [numberOfBlocksToProcess] [chunkSize]
+ * node load-blockchain.js
  *
  * Read and update state from blockchain into JSON as specified in SCHEMA.md:
  *
@@ -24,6 +24,7 @@ import { paintSuSquare, saveWholeSuSquare, publishSquareImageWithRGBData } from 
 import { publishMetadataJson } from "./libs/metadata.mjs";
 import { NUM_SQUARES } from "./libs/geometry.mjs";
 import { suSquares, suSquaresDeploymentBlock, underlay } from "./libs/contracts.mjs";
+import "dotenv/config";
 
 // Convert hex string to Uint8Array (optimized with lookup table)
 const hexToDecimalLookupTable = {
@@ -67,10 +68,7 @@ function uint8ArrayToHex(array) {
     return hexString;
 }
 
-const config = JSON.parse(fs.readFileSync("./config.json"));
-const provider = new ethers.JsonRpcProvider(config.provider);
-const numberOfBlocksToProcess = parseInt(process.argv[2]) || 1000000;
-const chunkSize = parseInt(process.argv[3]) || 2000;
+const provider = new ethers.JsonRpcProvider(process.env.PROVIDER_URL);
 const nonpersonalizedPixelData = hexToUint8Array("E6".repeat(300)); // Gray
 const blackPixelData = hexToUint8Array("00".repeat(300)); // Black
 const METADATA_DIR = "./build/metadata";
@@ -94,10 +92,7 @@ if (fs.existsSync("./build/loadedTo.json")
 }
 
 const currentSettledBlock = await provider.getBlockNumber() - SETTLE_BLOCKS;
-const endBlock = Math.min(state.loadedTo + numberOfBlocksToProcess, currentSettledBlock);
 console.log(chalk.blue("Loaded to:             ") + state.loadedTo);
-console.log(chalk.blue("Loading to:            ") + endBlock);
-console.log(chalk.blue("Chunk size:            ") + chunkSize);
 console.log(chalk.blue("Current settled block: ") + currentSettledBlock);
 fs.mkdirSync(METADATA_DIR, { recursive: true });
 
@@ -133,45 +128,43 @@ async function withRetry(fn, description) {
     throw lastError;
 }
 
-// Helper function to query logs in chunks (RPC block range limit workaround)
-async function queryFilterInChunks(contract, filter, fromBlock, toBlock, filterName, maxChunkSize = 2000) {
-    const allEvents = [];
-    const CHUNK_DELAY_MS = 1000; // Delay between chunk requests to avoid rate limiting
+const filterSold = suSquaresConnected.filters.Transfer(suSquares.getAddress(), null, null);
+const filterPersonalized = suSquaresConnected.filters.Personalized();
+const filterUnderlay = underlayConnected.filters.PersonalizedUnderlay();
 
-    console.log(chalk.blue(`\nFetching ${filterName} events...`));
+console.log(chalk.blue("\nFetching events..."));
+const [sold, personalized, personalizedUnderlay] = await Promise.all([
+    suSquaresConnected.queryFilter(filterSold, state.loadedTo + 1),
+    suSquaresConnected.queryFilter(filterPersonalized, state.loadedTo + 1),
+    underlayConnected.queryFilter(filterUnderlay, state.loadedTo + 1),
+]);
+console.log(chalk.green(`  ✓ Found ${sold.length} sold, ${personalized.length} personalized, ${personalizedUnderlay.length} underlay events`));
 
-    for (let currentBlock = fromBlock; currentBlock <= toBlock; currentBlock += maxChunkSize) {
-        const chunkEnd = Math.min(currentBlock + maxChunkSize - 1, toBlock);
+// Group events by block ///////////////////////////////////////////////////////
+const eventsByBlock = new Map();
 
-        // Add delay before each chunk request (except the first one)
-        if (currentBlock !== fromBlock) {
-            await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY_MS));
-        }
-
-        console.log(chalk.gray(`  [${filterName}] blocks ${currentBlock} to ${chunkEnd}...`));
-        const events = await withRetry(
-            () => contract.queryFilter(filter, currentBlock, chunkEnd),
-            filterName
-        );
-        allEvents.push(...events);
+for (const event of sold) {
+    const block = event.blockNumber;
+    if (!eventsByBlock.has(block)) {
+        eventsByBlock.set(block, { sold: [], underlay: [], personalized: [] });
     }
-
-    console.log(chalk.green(`  ✓ Found ${allEvents.length} ${filterName} events`));
-    return allEvents;
+    eventsByBlock.get(block).sold.push(event);
 }
 
-const filterSold = suSquaresConnected.filters.Transfer(suSquares.getAddress(), null, null);
-const sold = await queryFilterInChunks(suSquaresConnected, filterSold, state.loadedTo + 1, endBlock, 'Transfer', chunkSize);
+for (const event of personalizedUnderlay) {
+    const block = event.blockNumber;
+    if (!eventsByBlock.has(block)) {
+        eventsByBlock.set(block, { sold: [], underlay: [], personalized: [] });
+    }
+    eventsByBlock.get(block).underlay.push(event);
+}
 
-const filterPersonalized = suSquaresConnected.filters.Personalized();
-const personalized = await queryFilterInChunks(suSquaresConnected, filterPersonalized, state.loadedTo + 1, endBlock, 'Personalized', chunkSize);
-
-const filterUnderlay = underlayConnected.filters.PersonalizedUnderlay();
-const personalizedUnderlay = await queryFilterInChunks(underlayConnected, filterUnderlay, state.loadedTo + 1, endBlock, 'PersonalizedUnderlay', chunkSize);
-
-if (personalized.length > 100) {
-    console.log(chalk.red("Too many personalized events, server will choke. Try updating fewer. Exiting."));
-    process.exit(1);
+for (const event of personalized) {
+    const block = event.blockNumber;
+    if (!eventsByBlock.has(block)) {
+        eventsByBlock.set(block, { sold: [], underlay: [], personalized: [] });
+    }
+    eventsByBlock.get(block).personalized.push(event);
 }
 
 // Process events //////////////////////////////////////////////////////////////
@@ -182,65 +175,89 @@ function personalize(squareNumber, title, href, rgbData) {
     publishSquareImageWithRGBData(squareNumber, rgbData);
 }
 
-for (const event of sold) {
-    const squareNumber = Number(event.args.squareNumber);
-    console.log(`Sold: ${squareNumber} at block ${event.blockNumber}`);
-    state.squareExtra[squareNumber - 1] = [
-        event.blockNumber, // mintedBlock
-        event.blockNumber, // updatedBlock
-        false,             // mainIsPersonalized
-        0,                 // version
-    ];
-    personalize(squareNumber, "", "", nonpersonalizedPixelData);
+function saveState(blockNumber) {
+    state.loadedTo = blockNumber;
+    fs.writeFileSync("./build/loadedTo.json", JSON.stringify(state.loadedTo));
+    fs.writeFileSync("./build/squarePersonalizations.json", JSON.stringify(state.squarePersonalizations));
+    fs.writeFileSync("./build/underlayPersonalizations.json", JSON.stringify(state.underlayPersonalizations));
+    fs.writeFileSync("./build/squareExtra.json", JSON.stringify(state.squareExtra));
 }
 
-for (const event of personalizedUnderlay) {
-    const squareNumber = Number(event.args.squareNumber);
-    console.log(`Personalized underlay: ${squareNumber} at block ${event.blockNumber}`);
-    state.underlayPersonalizations[squareNumber - 1] = [
-        event.args.title,             // title
-        event.args.href,              // href
-        event.args.rgbData.substr(2), // rgbData
-    ];
-    if (state.squareExtra[squareNumber - 1][2 /* mainIsPersonalized */] === false) {
-        state.squareExtra[squareNumber - 1][1 /* updatedBlock */] = event.blockNumber;
-        personalize(squareNumber, event.args.title, event.args.href, hexToUint8Array(event.args.rgbData.substr(2)));
-    }
-}
+const sortedBlocks = [...eventsByBlock.keys()].sort((a, b) => a - b);
+console.log(chalk.blue(`\nProcessing ${sortedBlocks.length} blocks with events...`));
 
-for await (const event of personalized) {
-    const squareNumber = Number(event.args.squareNumber);
-    console.log(`Personalized main contract: ${squareNumber} at block ${event.blockNumber}`);
-    let { version, title, href, rgbData } = await withRetry(
-        () => suSquaresConnected.suSquares(squareNumber),
-        `suSquares(${squareNumber})`
-    );
+for (const blockNumber of sortedBlocks) {
+    const block = eventsByBlock.get(blockNumber);
+    console.log(chalk.gray(`\nBlock ${blockNumber}: ${block.sold.length} sold, ${block.underlay.length} underlay, ${block.personalized.length} personalized`));
 
-    const mainIsPersonalized = title !== ""
-        || href !== ""
-        || rgbData !== ("0x" + uint8ArrayToHex(blackPixelData)); // 0x000 is not case sensitive
-
-    state.squareExtra[squareNumber - 1] = [
-        state.squareExtra[squareNumber - 1][0], // mintedBlock
-        event.blockNumber,                      // updatedBlock
-        mainIsPersonalized,                     // mainIsPersonalized
-        Number(version),                        // version
-    ];
-
-    if (mainIsPersonalized) {
-        personalize(squareNumber, title, href, hexToUint8Array(rgbData.substr(2)));
-    } else if (state.underlayPersonalizations[squareNumber - 1] !== null) {
-        personalize(squareNumber, state.underlayPersonalizations[squareNumber - 1][0], state.underlayPersonalizations[squareNumber - 1][1], hexToUint8Array(state.underlayPersonalizations[squareNumber - 1][2]));
-    } else {
+    // Process sold events first
+    for (const event of block.sold) {
+        const squareNumber = Number(event.args.squareNumber);
+        console.log(`  Sold: ${squareNumber}`);
+        state.squareExtra[squareNumber - 1] = [
+            event.blockNumber, // mintedBlock
+            event.blockNumber, // updatedBlock
+            false,             // mainIsPersonalized
+            0,                 // version
+        ];
         personalize(squareNumber, "", "", nonpersonalizedPixelData);
     }
+
+    // Process underlay personalizations second
+    for (const event of block.underlay) {
+        const squareNumber = Number(event.args.squareNumber);
+        console.log(`  Personalized underlay: ${squareNumber}`);
+        state.underlayPersonalizations[squareNumber - 1] = [
+            event.args.title,             // title
+            event.args.href,              // href
+            event.args.rgbData.substr(2), // rgbData
+        ];
+        if (state.squareExtra[squareNumber - 1][2 /* mainIsPersonalized */] === false) {
+            state.squareExtra[squareNumber - 1][1 /* updatedBlock */] = event.blockNumber;
+            personalize(squareNumber, event.args.title, event.args.href, hexToUint8Array(event.args.rgbData.substr(2)));
+        }
+    }
+
+    // Process main contract personalizations last (requires RPC calls)
+    for (const event of block.personalized) {
+        const squareNumber = Number(event.args.squareNumber);
+        console.log(`  Personalized main contract: ${squareNumber}`);
+        let { version, title, href, rgbData } = await withRetry(
+            () => suSquaresConnected.suSquares(squareNumber),
+            `suSquares(${squareNumber})`
+        );
+
+        const mainIsPersonalized = title !== ""
+            || href !== ""
+            || rgbData !== ("0x" + uint8ArrayToHex(blackPixelData));
+
+        state.squareExtra[squareNumber - 1] = [
+            state.squareExtra[squareNumber - 1][0], // mintedBlock
+            event.blockNumber,                      // updatedBlock
+            mainIsPersonalized,                     // mainIsPersonalized
+            Number(version),                        // version
+        ];
+
+        if (mainIsPersonalized) {
+            personalize(squareNumber, title, href, hexToUint8Array(rgbData.substr(2)));
+        } else if (state.underlayPersonalizations[squareNumber - 1] !== null) {
+            personalize(squareNumber, state.underlayPersonalizations[squareNumber - 1][0], state.underlayPersonalizations[squareNumber - 1][1], hexToUint8Array(state.underlayPersonalizations[squareNumber - 1][2]));
+        } else {
+            personalize(squareNumber, "", "", nonpersonalizedPixelData);
+        }
+    }
+
+    // Commit state after each block
+    saveState(blockNumber);
+    console.log(chalk.green(`  ✓ Committed block ${blockNumber}`));
 }
 
+// Update loadedTo to settled block if no events, or keep at last processed block
+if (sortedBlocks.length === 0) {
+    saveState(currentSettledBlock);
+    console.log(chalk.green(`\nNo events to process, updated loadedTo to ${currentSettledBlock}`));
+}
 
-// Save checkpoint /////////////////////////////////////////////////////////////
-state.loadedTo = endBlock;
+// Save composite image ////////////////////////////////////////////////////////
 await saveWholeSuSquare();
-fs.writeFileSync("./build/loadedTo.json", JSON.stringify(state.loadedTo));
-fs.writeFileSync("./build/squarePersonalizations.json", JSON.stringify(state.squarePersonalizations));
-fs.writeFileSync("./build/underlayPersonalizations.json", JSON.stringify(state.underlayPersonalizations));
-fs.writeFileSync("./build/squareExtra.json", JSON.stringify(state.squareExtra));
+console.log(chalk.green("\n✓ Saved composite image"));

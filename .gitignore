@@ -1,7 +1,7 @@
 # CONFIGURATION FOR THIS SPECIFIC PROJECT
 /build
 # secret file with API key
-/config.json
+.env
 
 # FROM
 # https://raw.githubusercontent.com/github/gitignore/refs/heads/main/Node.gitignore

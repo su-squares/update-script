@@ -18,12 +18,10 @@ yarn install
 
 Also you will need a connection to the Ethereum network. You can get an HTTP provider at <https://infura.io/dashboard/ethereum/>.
 
-Configure the blockchain script by writing a file **config.json** like so:
+Configure the blockchain script by writing a file **.env** like so:
 
-```json
-{
-    "provider": "https://mainnet.infura.io/v3/YOUR INFURA API URL HERE"
-}
+```sh
+PROVIDER_URL=https://mainnet.infura.io/v3/YOUR_INFURA_API_KEY_HERE
 ```
 
 ### Setup blank image
