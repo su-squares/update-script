@@ -1,0 +1,23 @@
+name: Syntax check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  syntax_check:
+    name: Check JavaScript syntax
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Verify .mjs syntax
+        run: find . -name '*.mjs' -print0 | xargs -0 -n1 node --check
