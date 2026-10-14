@@ -7,8 +7,14 @@
  * node have-there-been-updates.mjs
  *
  * EXIT STATUS
- * 0 (success) if no new updates since loadedTo.json file updated
- * 1 (success) if new updates since loadedTo.json file updated
+ * 0  no new updates since loadedTo.json was saved
+ * 2  new updates since loadedTo.json was saved
+ * 1  failure, including an uncaught provider error
+ *
+ * Exit 2 is deliberate. Node already exits 1 when a provider call rejects
+ * and nothing catches it. The website workflow treats only exit 2 as
+ * "events found". Sharing exit 1 with a crash would start load-blockchain
+ * after a failed scan.
  *
  * FAST_FORWARD=1
  * With no new events, write loadedTo.json forward to the settled block.
@@ -20,6 +26,13 @@ import { ethers } from "ethers";
 import "dotenv/config";
 import { suSquares, suSquaresDeploymentBlock, underlay } from "./libs/contracts.mjs";
 import { queryFilterChunked, settledBlockNumber } from "./libs/logs.mjs";
+
+function reportFatal(error) {
+    console.error(error);
+    process.exit(1);
+}
+process.on("unhandledRejection", reportFatal);
+process.on("uncaughtException", reportFatal);
 
 const loadedTo = fs.existsSync("./build/loadedTo.json")
     ? JSON.parse(fs.readFileSync("./build/loadedTo.json"))
@@ -75,4 +88,4 @@ if (newLoadedTo > loadedTo) {
     console.log(`Updated loadedTo.json: ${loadedTo} → ${newLoadedTo}`);
 }
 
-process.exit(1); // updates found
+process.exit(2); // updates found

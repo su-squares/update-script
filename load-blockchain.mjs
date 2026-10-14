@@ -219,9 +219,11 @@ for (let index = 0; index < windows.length; index++) {
         for (const event of block.personalized) {
             const squareNumber = Number(event.args.squareNumber);
             console.log(`  Personalized main contract: ${squareNumber}`);
+            // State at this block. `latest` can include a personalization in the
+            // unsettled head, which a reorg can drop with no later event to repair.
             let { version, title, href, rgbData } = await withRetry(
-                () => suSquaresConnected.suSquares(squareNumber),
-                `suSquares(${squareNumber})`
+                () => suSquaresConnected.suSquares(squareNumber, { blockTag: blockNumber }),
+                `suSquares(${squareNumber}) @ ${blockNumber}`
             );
 
             const mainIsPersonalized = title !== ""
@@ -244,7 +246,9 @@ for (let index = 0; index < windows.length; index++) {
             }
         }
 
-        // Commit state after each block
+        // paintSuSquare only queues pixels. Write the board before the
+        // checkpoint so a later failed window does not skip these squares.
+        await saveWholeSuSquare();
         saveState(blockNumber);
         console.log(chalk.green(`  ✓ Committed block ${blockNumber}`));
     }
