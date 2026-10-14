@@ -104,17 +104,28 @@ function paintSuSquare(squareNumber, rgbData) {
     });
 }
 
-function saveWholeSuSquare() {
+async function saveWholeSuSquare() {
+    if (composites.length === 0) {
+        return;
+    }
     const inputFile = fs.existsSync(BUILT_BOARD)
         ? BUILT_BOARD
         : EMPTY_BOARD;
     // Load file bytes because we are reading & writing the same file
     // see https://github.com/lovell/sharp/issues/2873
     const inputBuffer = fs.readFileSync(inputFile);
-    return sharp(inputBuffer)
-        .composite(composites)
-        .webp({ lossless: true })
-        .toFile(BUILT_BOARD);
+    // Take the queue before the write. A later save reads this file, so
+    // leaving the overlays queued would paint them again.
+    const pending = composites.splice(0, composites.length);
+    try {
+        await sharp(inputBuffer)
+            .composite(pending)
+            .webp({ lossless: true })
+            .toFile(BUILT_BOARD);
+    } catch (error) {
+        composites.unshift(...pending);
+        throw error;
+    }
 }
 
 export { paintSuSquare, saveWholeSuSquare, publishEmptySquareImage, publishSquareImageWithRGBData };
