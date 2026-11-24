@@ -1,10 +1,10 @@
 {
   "dependencies": {
-    "chalk": "^5.6.2",
+    "chalk": "^6.0.1",
     "cli-progress": "^3.12.0",
-    "dotenv": "^17.2.3",
-    "ethers": "^6.16.0",
-    "sharp": "^0.34.5"
+    "dotenv": "^18.0.10",
+    "ethers": "^6.17.0",
+    "sharp": "^0.35.5"
   },
   "scripts": {
     "have-there-been-updates": "node have-there-been-updates.mjs",
@@ -13,5 +13,5 @@
   "//": [
     "These are comments, https://stackoverflow.com/a/14221781/300224"
   ],
-  "packageManager": "yarn@4.14.1"
+  "packageManager": "yarn@4.19.0"
 }
